@@ -75,7 +75,9 @@ def collect_to_google_sheet(
 
 
 st.title("Simulation de classement")
-
+st.text(
+    "Attention une seule simulation est autorisée . Saissez correctement votre rang de Pass et de LAS2"
+)
 rank_m1 = st.number_input(
     "🎓 Votre rang en PASS (sur 1799)", min_value=1, max_value=1799, value=100
 )
