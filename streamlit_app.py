@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 import gspread
@@ -10,6 +11,11 @@ from simulation import (
 )  # adapte l'import selon ton fichier
 
 
+def generate_user_hash(rank_m1, size_m2):
+    key = f"{rank_m1}-{size_m2}"
+    return hashlib.sha256(key.encode()).hexdigest()
+
+
 def convert_rank_to_note_m1(rank_m1):
     return 20.0 * (1.0 - (rank_m1 - 1) / 1798.0)
 
@@ -18,13 +24,12 @@ def convert_rank_to_note_m2(rank_m2, size):
     return 20.0 * (1.0 - (rank_m2 - 1) / (size - 1))
 
 
-def collect_to_google_sheet(rank_m1, rank_m2, size_m2, note_m1, note_m2):
+def collect_to_google_sheet(
+    nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2
+):
     try:
-        # Accès aux secrets (clé + ID du Sheet)
         sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
-
-        # Charger les credentials depuis st.secrets
-        json_keyfile = dict(st.secrets)  # secrets est un dict
+        json_keyfile = dict(st.secrets)
         scope = [
             "https://spreadsheets.google.com/feeds",
             "https://www.googleapis.com/auth/drive",
@@ -32,13 +37,39 @@ def collect_to_google_sheet(rank_m1, rank_m2, size_m2, note_m1, note_m2):
         creds = ServiceAccountCredentials.from_json_keyfile_dict(
             json_keyfile, scope
         )
-
         client = gspread.authorize(creds)
         sheet = client.open_by_key(sheet_id).sheet1
 
-        sheet.append_row([rank_m1, rank_m2, size_m2, note_m1, note_m2])
+        user_hash = generate_user_hash(rank_m1, size_m2)
+        rows = sheet.get_all_values()
 
+        if not rows:
+            header = [
+                "Nom LAS",
+                "Rang M1",
+                "Rang M2",
+                "Taille M2",
+                "Note M1",
+                "Note M2",
+                "Hash",
+            ]
+            sheet.append_row(header)
+        else:
+            hashes = [row[-1] for row in rows[1:] if len(row) > 6]
+            las_names = [row[0] for row in rows[1:] if len(row) > 0]
+            if nom_las in las_names:
+                if user_hash not in hashes:
+                    st.error(
+                        "🚫 Une tentative avec un autre classement a déjà été enregistrée."
+                    )
+                    return  # ne pas continuer
+
+        # Ajouter la ligne avec le hash
+        sheet.append_row(
+            [nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, user_hash]
+        )
         st.success("✅ Données enregistrées dans Google Sheets.")
+
     except Exception as e:
         st.error(f"Erreur lors de l'enregistrement dans Google Sheets : {e}")
 
@@ -48,6 +79,7 @@ st.title("Simulation de classement")
 rank_m1 = st.number_input(
     "🎓 Votre rang en PASS (sur 1799)", min_value=1, max_value=1799, value=100
 )
+nom_las = st.text_input("🏫 Nom de votre LAS", max_chars=100)
 rank_m2 = st.number_input("🎓 Votre rang en LAS2", min_value=1, value=50)
 size_m2 = st.number_input(
     "👥 Effectif total de votre LAS2", min_value=2, value=300
@@ -58,7 +90,7 @@ rang_souhaite = st.number_input(
     max_value=884,
     value=150,
 )
-rho = st.slider("🔗 Corrélation M1/M2", 0.7, 1.0, 0.85, step=0.05)
+rho = st.slider("🔗 Corrélation PASS / LASS", 0.7, 1.0, 0.85, step=0.05)
 n = st.number_input(
     "🔁 Nombre de simulations", min_value=100, value=10000, step=100
 )
@@ -71,7 +103,9 @@ if st.button("Lancer la simulation"):
     st.write(f"🧮 Note M1 estimée : {note_m1:.2f}")
     st.write(f"🧮 Note M2 estimée : {note_m2:.2f}")
 
-    collect_to_google_sheet(rank_m1, rank_m2, size_m2, note_m1, note_m2)
+    collect_to_google_sheet(
+        nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2
+    )
 
     p, se = simulate_student_ranking(
         n_simulations=n,
