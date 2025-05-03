@@ -71,6 +71,8 @@ if st.button("Lancer la simulation"):
     st.write(f"🧮 Note M1 estimée : {note_m1:.2f}")
     st.write(f"🧮 Note M2 estimée : {note_m2:.2f}")
 
+    collect_to_google_sheet(rank_m1, rank_m2, size_m2, note_m1, note_m2)
+
     p, se = simulate_student_ranking(
         n_simulations=n,
         rang_souhaite=rang_souhaite,
