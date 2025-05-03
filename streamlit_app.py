@@ -2,6 +2,7 @@ import hashlib
 import json
 
 import gspread
+import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
@@ -98,6 +99,9 @@ n = st.number_input(
 )
 n_workers = st.number_input("🧵 Threads", min_value=1, value=4)
 
+show_graph = st.checkbox(
+    "📈 Afficher le graphique de probabilité par rang", value=True
+)
 
 if st.button("Lancer la simulation"):
     note_m1 = convert_rank_to_note_m1(rank_m1)
@@ -121,3 +125,32 @@ if st.button("Lancer la simulation"):
         st.success(
             f"📊 Probabilité d'être dans le top {rang_souhaite} : {p:.2%} ± {se:.2%}"
         )
+    if show_graph:
+        st.subheader("📉 Probabilité selon le rang souhaité")
+
+        rhos = [0.8, 0.9, 1.0]
+        ranks = list(
+            range(max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2)
+        )
+        fig, ax = plt.subplots()
+
+        for r in rhos:
+            pvals = [
+                simulate_student_ranking(
+                    rang_souhaite=target_rank,
+                    rho=r,
+                    n_simulations=1000,
+                    note_m1_perso=note_m1,
+                    note_m2_perso=note_m2,
+                    n_workers=n_workers,
+                )[0]
+                for target_rank in ranks
+            ]
+            ax.plot(ranks, pvals, label=f"ρ = {r}")
+
+        ax.set_xlabel("Rang souhaité")
+        ax.set_ylabel("Probabilité")
+        ax.set_title("Probabilité d'atteindre un rang donné")
+        ax.grid(True)
+        ax.legend()
+        st.pyplot(fig)
