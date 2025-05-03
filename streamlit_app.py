@@ -62,14 +62,14 @@ def collect_to_google_sheet(
                     st.error(
                         "🚫 Une tentative avec un autre classement a déjà été enregistrée."
                     )
-                    return  # ne pas continuer
+                    return False  # ne pas continuer
 
         # Ajouter la ligne avec le hash
         sheet.append_row(
             [nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, user_hash]
         )
         st.success("✅ Données enregistrées dans Google Sheets.")
-
+        return True
     except Exception as e:
         st.error(f"Erreur lors de l'enregistrement dans Google Sheets : {e}")
 
@@ -105,19 +105,19 @@ if st.button("Lancer la simulation"):
     st.write(f"🧮 Note M1 estimée : {note_m1:.2f}")
     st.write(f"🧮 Note M2 estimée : {note_m2:.2f}")
 
-    collect_to_google_sheet(
+    if collect_to_google_sheet(
         nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2
-    )
+    ):
 
-    p, se = simulate_student_ranking(
-        n_simulations=n,
-        rang_souhaite=rang_souhaite,
-        note_m1_perso=note_m1,
-        note_m2_perso=note_m2,
-        rho=rho,
-        n_workers=n_workers,
-    )
+        p, se = simulate_student_ranking(
+            n_simulations=n,
+            rang_souhaite=rang_souhaite,
+            note_m1_perso=note_m1,
+            note_m2_perso=note_m2,
+            rho=rho,
+            n_workers=n_workers,
+        )
 
-    st.success(
-        f"📊 Probabilité d'être dans le top {rang_souhaite} : {p:.2%} ± {se:.2%}"
-    )
+        st.success(
+            f"📊 Probabilité d'être dans le top {rang_souhaite} : {p:.2%} ± {se:.2%}"
+        )
