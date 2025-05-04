@@ -11,7 +11,41 @@ import streamlit.components.v1 as components
 from oauth2client.service_account import ServiceAccountCredentials
 from scipy.stats import pearsonr
 
+def set_cookie(name, value):
+    script = f"""
+        <script>
+        document.cookie = "{name}={value};path=/;SameSite=Lax;";
+        </script>
+    """
+    components.html(script, height=0)
 
+
+# Crée un champ texte caché que le JS peut remplir
+cookie_val = st.text_input(
+    label="", value="", key="simu_lock_hidden", label_visibility="hidden"
+)
+
+# JS injecté qui lit le cookie et le met dans le champ invisible
+components.html(
+    f"""
+    <script>
+    const value = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('simu_lock='))
+        ?.split('=')[1];
+    if (value !== undefined) {{
+        const streamlitInput = window.parent.document.querySelector('input[data-streamlit-key="simu_lock"]');
+        if (streamlitInput) {{
+            streamlitInput.value = value;
+            streamlitInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
+        }}
+    }}
+    </script>
+    """,
+    height=0,
+)
+
+    
 def get_cookie(name):
     script = f"""
         <script>
@@ -35,39 +69,12 @@ def get_cookie(name):
     return None  # Toujours None ici, la valeur sera injectée plus tard
 
 
-def set_cookie(name, value):
-    script = f"""
-        <script>
-        document.cookie = "{name}={value};path=/;SameSite=Lax;";
-        </script>
-    """
-    components.html(script, height=0)
-
-
-from simulation import (
-    simulate_student_ranking,
-)  # adapte l'import selon ton fichier
-
-# --- Session state init ---
-for key in [
-    "rank_m1_locked",
-    "rank_m2_locked",
-    "size_m2_locked",
-    "nom_las_locked",
-]:
+# Init session state
+for key in ["rank_m1_locked", "rank_m2_locked", "size_m2_locked", "nom_las_locked"]:
     if key not in st.session_state:
         st.session_state[key] = None
 
-# Crée un champ texte caché que le JS peut remplir
-cookie_val = st.text_input(
-    label="", value="", key="simu_lock_hidden", label_visibility="hidden"
-)
-
-
-# Injecte le script JS pour remplir ce champ
-get_cookie("simu_lock")
-
-# Lecture et traitement du cookie (une fois injecté)
+# Si cookie lu, remplir session_state
 if cookie_val and cookie_val.count("-") == 3:
     try:
         rank_m1_c, rank_m2_c, size_m2_c, nom_las_c = cookie_val.split("-")
@@ -75,8 +82,15 @@ if cookie_val and cookie_val.count("-") == 3:
         st.session_state["rank_m2_locked"] = int(rank_m2_c)
         st.session_state["size_m2_locked"] = int(size_m2_c)
         st.session_state["nom_las_locked"] = nom_las_c
-    except Exception:
-        pass
+        st.info("🔒 Simulation déjà effectuée. Champs verrouillés.")
+    except Exception as e:
+        st.warning(f"⚠️ Cookie mal formé : {e}")
+
+
+from simulation import (
+    simulate_student_ranking,
+)  # adapte l'import selon ton fichier
+
 
 
 def generate_user_hash(rank_m1, size_m2):
