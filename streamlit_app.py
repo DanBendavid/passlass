@@ -1,6 +1,7 @@
 import hashlib
 import json
 from datetime import datetime
+
 import gspread
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -64,7 +65,9 @@ def collect_to_google_sheet(
                     "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
                 )
                 return False  # ne pas continuer
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Format du timestamp
+        timestamp = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )  # Format du timestamp
         # Ajouter la ligne avec le hash
         sheet.append_row(
             [
@@ -93,10 +96,13 @@ rank_m1 = st.number_input(
     "🎓 Votre rang en PASS (sur 1799)", min_value=1, max_value=1799, value=100
 )
 nom_las = st.text_input("🏫 Nom de votre LAS", max_chars=100)
-rank_m2 = st.number_input("🎓 Votre rang en LAS2", min_value=1, value=50)
 size_m2 = st.number_input(
     "👥 Effectif total de votre LAS2", min_value=2, value=300
 )
+rank_m2 = st.number_input(
+    "🎓 Votre rang en LAS2", min_value=1, max_value=size_m2, value=50
+)
+
 rang_souhaite = st.number_input(
     "🎯 Rang estimé dans la promo (sur 884)",
     min_value=1,
@@ -105,10 +111,14 @@ rang_souhaite = st.number_input(
 )
 rho = st.slider("🔗 Corrélation PASS / LASS", 0.7, 1.0, 0.85, step=0.05)
 n = st.number_input(
-    "🔁 Nombre de simulations", min_value=100, value=10000, step=100
+    "🔁 Nombre de simulations",
+    min_value=100,
+    value=10000,
+    max_value=20000,
+    step=1000,
 )
-n_workers = st.number_input("🧵 Threads", min_value=1, value=4)
-
+# n_workers = st.number_input("🧵 Threads", min_value=1, value=4)
+n_workers = 4
 show_graph = st.checkbox(
     "📈 Afficher le graphique de probabilité par rang", value=True
 )
