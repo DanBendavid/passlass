@@ -128,6 +128,9 @@ def afficher_rho_empirique():
             )
             return False
 
+        st.subheader("📋 Données utilisées pour le calcul de ρ")
+        st.dataframe(df[["note m1", "note m2"]])
+
         # Corrélation de Pearson
         rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
         st.success(
