@@ -4,6 +4,7 @@ from datetime import datetime
 
 import gspread
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
@@ -88,7 +89,50 @@ def collect_to_google_sheet(
         st.error(f"Erreur : {e}")
 
 
+def afficher_rho_empirique():
+    try:
+        # Authentification Google Sheets
+        sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
+        json_keyfile = dict(st.secrets)
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            json_keyfile, scope
+        )
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(sheet_id).sheet1
+
+        # Lire les données dans un DataFrame
+        data = sheet.get_all_values()
+        df = pd.DataFrame(data[1:], columns=data[0])  # [1:] saute l'en-tête
+
+        # Convertir les colonnes de notes en float
+        df["Note M1"] = pd.to_numeric(df["Note M1"], errors="coerce")
+        df["Note M2"] = pd.to_numeric(df["Note M2"], errors="coerce")
+
+        # Supprimer les lignes avec valeurs manquantes
+        df = df.dropna(subset=["Note M1", "Note M2"])
+
+        if len(df) < 3:
+            st.warning(
+                "📉 Pas assez de données pour calculer une corrélation fiable."
+            )
+            return False
+
+        # Calcul de la corrélation de Pearson
+        rho_e = np.corrcoef(df["Note M1"], df["Note M2"])[0, 1]
+        st.success(
+            f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}**"
+        )
+
+    except Exception as e:
+        st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
+
+
 st.title("Simulation de classement")
+
 st.text(
     "Attention une seule simulation est autorisée . Saissez correctement votre rang de Pass et de LAS2"
 )
@@ -189,3 +233,5 @@ if st.button("Lancer la simulation"):
                 f"{int(p * 100)}% ± {int(se * 100)}%"
             )
         )
+        if afficher_rho_empirique():
+            return
