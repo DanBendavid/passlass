@@ -11,34 +11,26 @@ import streamlit.components.v1 as components
 from oauth2client.service_account import ServiceAccountCredentials
 from scipy.stats import pearsonr
 
+from simulation import simulate_student_ranking
 
-def set_cookie(name, value):
-    script = f"""
-        <script>
-        document.cookie = "{name}={value};path=/;SameSite=Lax;";
-        </script>
-    """
-    components.html(script, height=0)
-
+COOKIE_NAME = "simu_lock"
 
 # Crée un champ texte caché que le JS peut remplir
 cookie_val = st.text_input(
-    label="", value="", key="simu_lock", label_visibility="collapsed"
+    label="", value="", key=COOKIE_NAME, label_visibility="collapsed"
 )
 
-# JS injecté qui lit le cookie et le met dans le champ invisible
+# 2. JavaScript : lit le cookie et le colle dans le champ caché
 components.html(
     f"""
     <script>
-    const value = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('simu_lock='))
-        ?.split('=')[1];
-    if (value !== undefined) {{
-        const streamlitInput = window.parent.document.querySelector('input[data-streamlit-key="simu_lock"]');
-        if (streamlitInput) {{
-            streamlitInput.value = value;
-            streamlitInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
+    const raw = document.cookie.split('; ').find(r => r.startsWith('{COOKIE_NAME}='));
+    if (raw) {{
+        const value = decodeURIComponent(raw.split('=')[1]);
+        const el = document.querySelector('input[data-streamlit-key="{COOKIE_NAME}"]');
+        if (el && el.value !== value) {{
+            el.value = value;
+            el.dispatchEvent(new Event('input', {{ bubbles: true }}));
         }}
     }}
     </script>
@@ -47,6 +39,16 @@ components.html(
 )
 
 
+# 3. Initialisation du session_state (une seule fois)
+for k in (
+    "rank_m1_locked",
+    "rank_m2_locked",
+    "size_m2_locked",
+    "nom_las_locked",
+):
+    st.session_state.setdefault(k, None)
+
+# 4. Si cookie lu & pas encore traité, remplir le session_state et relancer
 if (
     "cookie_processed" not in st.session_state
     and cookie_val
@@ -60,16 +62,26 @@ if (
                 "rank_m2_locked": int(r2),
                 "size_m2_locked": int(sz),
                 "nom_las_locked": nom,
-                "cookie_processed": True,  # évite de re-parser à chaque rerun
+                "cookie_processed": True,
             }
         )
-        st.experimental_rerun()  # relance avec les champs désactivés
+        st.experimental_rerun()  # force le rerun avec champs verrouillés
     except ValueError:
-        st.warning("Cookie mal formé")
+        st.warning("Cookie mal formé ; il sera ignoré.")
 
-from simulation import (
-    simulate_student_ranking,
-)  # adapte l'import selon ton fichier
+
+# ────────────────────────────────────────────────────────────────
+# Fonctions utilitaires
+def set_cookie(name: str, value: str):
+    components.html(
+        f"""
+        <script>
+        document.cookie = "{name}=" + encodeURIComponent("{value}") +
+                          "; path=/; SameSite=Lax;";
+        </script>
+        """,
+        height=0,
+    )
 
 
 def generate_user_hash(rank_m1, size_m2):
@@ -340,9 +352,18 @@ if st.button("Lancer la simulation"):
     if collect_to_google_sheet(
         nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rang_souhaite
     ):  # Verifie que l'enregistrement a réussi et que l'utilisateur n'a pas déjà enregistré une simulation
+        # 1) Verrouille en session
+        st.session_state.update(
+            {
+                "rank_m1_locked": rank_m1,
+                "rank_m2_locked": rank_m2,
+                "size_m2_locked": size_m2,
+                "nom_las_locked": nom_las,
+            }
+        )
 
         cookie_str = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
-        set_cookie("simu_lock", cookie_str)
+        set_cookie(COOKIE_NAME, cookie_str)
 
         p, se = simulate_student_ranking(
             n_simulations=n,
