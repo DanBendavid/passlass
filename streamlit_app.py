@@ -111,7 +111,7 @@ if st.button("Lancer la simulation"):
 
     if collect_to_google_sheet(
         nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2
-    ):
+    ):  # Verifie que l'enregistrement a réussi et que l'utilisateur n'a pas déjà enregistré une simulation
 
         p, se = simulate_student_ranking(
             n_simulations=n,
@@ -125,32 +125,34 @@ if st.button("Lancer la simulation"):
         st.success(
             f"📊 Probabilité d'être dans le top {rang_souhaite} : {p:.2%} ± {se:.2%}"
         )
-    if show_graph:
-        st.subheader("📉 Probabilité selon le rang souhaité")
+        if show_graph:
+            st.subheader("📉 Probabilité selon le rang souhaité")
 
-        rhos = [0.8, 0.9, 1.0]
-        ranks = list(
-            range(max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2)
-        )
-        fig, ax = plt.subplots()
+            rhos = [0.8, 0.9, 1.0]
+            ranks = list(
+                range(
+                    max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2
+                )
+            )
+            fig, ax = plt.subplots()
 
-        for r in rhos:
-            pvals = [
-                simulate_student_ranking(
-                    rang_souhaite=target_rank,
-                    rho=r,
-                    n_simulations=1000,
-                    note_m1_perso=note_m1,
-                    note_m2_perso=note_m2,
-                    n_workers=n_workers,
-                )[0]
-                for target_rank in ranks
-            ]
-            ax.plot(ranks, pvals, label=f"ρ = {r}")
+            for r in rhos:
+                pvals = [
+                    simulate_student_ranking(
+                        rang_souhaite=target_rank,
+                        rho=r,
+                        n_simulations=1000,
+                        note_m1_perso=note_m1,
+                        note_m2_perso=note_m2,
+                        n_workers=n_workers,
+                    )[0]
+                    for target_rank in ranks
+                ]
+                ax.plot(ranks, pvals, label=f"ρ = {r}")
 
-        ax.set_xlabel("Rang souhaité")
-        ax.set_ylabel("Probabilité")
-        ax.set_title("Probabilité d'atteindre un rang donné")
-        ax.grid(True)
-        ax.legend()
-        st.pyplot(fig)
+            ax.set_xlabel("Rang souhaité")
+            ax.set_ylabel("Probabilité")
+            ax.set_title("Probabilité d'atteindre un rang donné")
+            ax.grid(True)
+            ax.legend()
+            st.pyplot(fig)
