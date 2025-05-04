@@ -123,23 +123,23 @@ def afficher_rho_empirique():
         # Supprimer les lignes incomplètes
         df = df.dropna(subset=["note m1", "note m2"])
 
-        if len(df) < 3:
+        if len(df) < 50:
             st.warning(
                 f"📉 Pas assez de données pour calculer une corrélation fiable : {len(df)}"
             )
             return False
+        else:
+            # st.subheader("📋 Données utilisées pour le calcul de ρ")
+            #        st.dataframe(df[["note m1", "note m2"]])
 
-        st.subheader("📋 Données utilisées pour le calcul de ρ")
-        #        st.dataframe(df[["note m1", "note m2"]])
-
-        # Corrélation de Pearson
-        rho_e, p = pearsonr(df["note m1"], df["note m2"])
-        # rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
-        st.success(
-            f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}** calculé avec {len(df)} notes. la significativité {p}"
-        )
-        for i, (m1, m2) in enumerate(zip(df["note m1"], df["note m2"])):
-            st.write(f"Ligne {i+1}: M1 = {m1}, M2 = {m2}")
+            # Corrélation de Pearson
+            rho_e, p = pearsonr(df["note m1"], df["note m2"])
+            # rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
+            st.success(
+                f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}** calculé avec {len(df)} notes. la significativité {p}"
+            )
+    #        for i, (m1, m2) in enumerate(zip(df["note m1"], df["note m2"])):
+    #            st.write(f"Ligne {i+1}: M1 = {m1}, M2 = {m2}")
     except Exception as e:
         st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
 
