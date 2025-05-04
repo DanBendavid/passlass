@@ -25,6 +25,7 @@ for k in (
 ):
     st.session_state.setdefault(k, None)
 
+
 # ───────── 2. Champ caché + JS pour lire le cookie ──────────
 cookie_val = st.text_input(
     "hidden_cookie_field",  # label exigé, mais on le masque
@@ -290,34 +291,47 @@ st.text(
 )
 
 # Inputs verrouillés si déjà soumis
+rank_m1_locked = int(st.session_state.get("rank_m1_locked", 0) or 0)
+nom_las_locked = st.session_state.get("nom_las_locked", "")
+size_m2_locked = int(st.session_state.get("size_m2_locked", 0) or 0)
+rank_m2_locked = int(st.session_state.get("rank_m2_locked", 0) or 0)
+
+
 rank_m1 = st.number_input(
-    "🎓 Votre rang en PASS (sur 1799)",
+    label="🎓 Rang PASS (1-1799)",
     min_value=1,
     max_value=1799,
-    value=st.session_state.get("rank_m1_locked") or 100,
-    disabled=st.session_state.get("rank_m1_locked") is not None,
+    value=rank_m1_locked if rank_m1_locked else 100,
+    step=1,
+    disabled=bool(rank_m1_locked),
+    key="rank_m1_input",
 )
 
+# Zone de saisie du nom LAS
 nom_las = st.text_input(
-    "🏫 Nom de votre LAS",
-    value=st.session_state.get("nom_las_locked") or "",
+    label="🏫 Nom de votre LAS",
+    value=nom_las_locked if nom_las_locked else "",
     max_chars=100,
-    disabled=st.session_state.get("nom_las_locked") is not None,
+    disabled=bool(nom_las_locked),
 )
 
+# Effectif LAS2
 size_m2 = st.number_input(
-    "👥 Effectif total de votre LAS2",
+    label="👥 Effectif total de votre LAS2",
     min_value=2,
-    value=st.session_state.get("size_m2_locked") or 300,
-    disabled=st.session_state.get("size_m2_locked") is not None,
+    value=size_m2_locked if size_m2_locked else 300,
+    step=1,
+    disabled=bool(size_m2_locked),
 )
 
+# Rang LAS2
 rank_m2 = st.number_input(
-    "🎓 Votre rang en LAS2",
+    label="🎓 Votre rang en LAS2",
     min_value=1,
     max_value=size_m2,
-    value=st.session_state.get("rank_m2_locked") or 50,
-    disabled=st.session_state.get("rank_m2_locked") is not None,
+    value=rank_m2_locked if rank_m2_locked else 50,
+    step=1,
+    disabled=bool(rank_m2_locked),
 )
 
 rang_souhaite = st.number_input(
