@@ -28,7 +28,7 @@ def get_cookie(name):
         </script>
     """
     components.html(script, height=0)
-    return st.experimental_get_query_params().get(name, [None])[0]
+    return st.query_params().get(name, [None])[0]
 
 
 def set_cookie(name, value):
