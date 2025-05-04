@@ -213,6 +213,9 @@ if st.button("Lancer la simulation"):
         )
         # Affichage du ρ empirique à la fin de la page
         st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
+        sheet = get_google_sheet(
+            st.secrets["GOOGLE_SHEET_KEY"], dict(st.secrets)
+        )
         df = get_dataframe_from_sheet(sheet)
         rho_empirique = calculate_rho(df)
         if rho_empirique:

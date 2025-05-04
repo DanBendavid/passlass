@@ -1,254 +1,103 @@
-# -*- coding: utf-8 -*-
-"""Student‑ranking simulation with three fixed groups (254, 311, 319 classmates).
+# app.py
+import streamlit as st
+import matplotlib.pyplot as plt
+from simulation import simulate_student_ranking
 
-*2025‑05‑01 – Patch 3*
-──────────────────────
-• **Multithreading support** — `simulate_student_ranking` now accepts a
-  `n_workers` parameter (≥ 1).  When `n_workers > 1`, the workload is split
-  across a :class:`concurrent.futures.ThreadPoolExecutor` so that multiple
-  cohorts are simulated in parallel.  NumPy releases the GIL during heavy
-  array maths, so thread‑level parallelism brings a noticeable speed‑up while
-  avoiding the pickling overhead of ``multiprocessing``.
-• No behavioural change when ``n_workers == 1`` (default).
-• Refactored core loop into the private helper ``_simulate_chunk`` so it can
-  be reused by each worker.
-"""
-from __future__ import annotations
+from core import (
+    convert_rank_to_note_m1,
+    convert_rank_to_note_m2,
+    get_google_sheet,
+    collect_to_google_sheet,
+    get_dataframe_from_sheet,
+    calculate_rho,
+)
 
-import concurrent.futures
-from pathlib import Path
-from typing import List, Tuple
+st.set_page_config(page_title="Simulation Classement PASS/LAS")
 
-import numpy as np
-import pandas as pd
+st.title("Simulation de classement")
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-GROUP_SIZES_FULL = np.array([254, 311, 320])
-GROUP_SIZES: np.ndarray = GROUP_SIZES_FULL.copy()
-GROUP_SIZES[-1] -= 1  # 319
-NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 884
+st.info("⚠️ Une seule simulation par personne est autorisée. Vérifiez bien vos rangs avant de lancer.")
 
-GROUP_LABELS: np.ndarray = np.repeat(np.arange(3), GROUP_SIZES)  # 0/1/2
+rank_m1 = st.number_input("🎓 Rang PASS (sur 1799)", min_value=1, max_value=1799, value=100)
+nom_las = st.text_input("🏫 Nom de votre LAS", max_chars=100)
+size_m2 = st.number_input("👥 Effectif LAS2", min_value=2, value=300)
+rank_m2 = st.number_input("🎓 Rang LAS2", min_value=1, max_value=size_m2, value=50)
+rang_souhaite = st.number_input("🎯 Rang souhaité (sur 884)", min_value=1, max_value=884, value=200)
+rho = st.slider("🔗 Corrélation PASS/LAS", 0.7, 1.0, 0.85, step=0.05)
+n = st.number_input("🔁 Nombre de simulations", min_value=100, max_value=20000, value=10000, step=1000)
+show_graph = st.checkbox("📈 Afficher le graphique de probabilité", value=True)
+n_workers = 4
 
-# ---------------------------------------------------------------------------
-# Helper: conversion rank → notes
-# ---------------------------------------------------------------------------
+if st.button("Lancer la simulation"):
+    note_m1 = convert_rank_to_note_m1(rank_m1)
+    note_m2 = convert_rank_to_note_m2(rank_m2, size_m2)
 
+    st.write(f"🧮 Note M1 estimée : {note_m1:.2f}")
+    st.write(f"🧮 Note M2 estimée : {note_m2:.2f}")
 
-def _m1_from_ranks(ranks: np.ndarray) -> np.ndarray:
-    """Convert *global* ranks (1‑based in the full cohort) to M1 marks."""
-    k = 420 + (ranks - 1)
-    return 20.0 * (1.0 - k / 1798.0)
-
-
-def _rank_inside_groups(ranks: np.ndarray) -> np.ndarray:
-    """Return *1‑based* ranks inside each pre‑defined group.
-
-    Supports both a 1‑D array (single cohort) and a 2‑D array of shape
-    ``(n_cohorts, 884)``.  The returned array has the same shape as *ranks*.
-    """
-    ranks = np.asarray(ranks)
-
-    if ranks.ndim == 1:
-        intra = np.empty_like(ranks)
-        for g in range(3):
-            mask = GROUP_LABELS == g
-            intra[mask] = ranks[mask].argsort().argsort() + 1
-        return intra
-
-    if ranks.ndim == 2:
-        n_cohorts = ranks.shape[0]
-        intra = np.empty_like(ranks)
-        for g, size in enumerate(GROUP_SIZES):
-            mask = GROUP_LABELS == g  # (884,)
-            sub = ranks[:, mask]  # (n_cohorts, size)
-            order = np.argsort(sub, axis=1)
-            tmp = np.empty_like(sub)
-            tmp[np.arange(n_cohorts)[:, None], order] = np.arange(size) + 1
-            intra[:, mask] = tmp
-        return intra
-
-    raise ValueError("ranks array must be 1‑D or 2‑D")
-
-
-def _m2_from_ranks(ranks: np.ndarray) -> np.ndarray:
-    intra = _rank_inside_groups(ranks) - 1  # 0‑based intra ranks
-    gsize = GROUP_SIZES[GROUP_LABELS]
-    if ranks.ndim == 2:
-        gsize = gsize[None, :]  # broadcast over rows
-    return 20.0 * (1.0 - intra / (gsize - 1))
-
-
-# ---------------------------------------------------------------------------
-# Core simulation helpers (serial + threaded wrappers)
-# ---------------------------------------------------------------------------
-
-
-def _simulate_chunk(
-    n_simulations: int,
-    rang_souhaite: int,
-    note_m1_perso: float,
-    note_m2_perso: float,
-    rho: float,
-    batch: int,
-    seed: int | None = None,
-) -> int:
-    """Run *n_simulations* and return the number of *successes* (n_ok)."""
-    rng = np.random.default_rng(seed)
-
-    target_avg = (note_m1_perso + note_m2_perso) / 2.0
-    cov = np.array([[1.0, rho], [rho, 1.0]])
-    n_done = n_ok = 0
-
-    while n_done < n_simulations:
-        n = min(batch, n_simulations - n_done)
-        z = rng.multivariate_normal([0.0, 0.0], cov, size=(n, NB_CLASSMATES))
-
-        rank_m1 = np.argsort(z[:, :, 0], axis=1).argsort(axis=1) + 1
-        rank_m2 = np.argsort(z[:, :, 1], axis=1).argsort(axis=1) + 1
-
-        m1 = _m1_from_ranks(rank_m1)
-        m2 = _m2_from_ranks(rank_m2)
-
-        averages = (m1 + m2) / 2.0
-        n_better = (averages > target_avg).sum(axis=1)
-        n_ok += (n_better <= rang_souhaite - 1).sum()
-        n_done += n
-
-    return n_ok
-
-
-def simulate_student_ranking(
-    n_simulations: int = 10000,
-    rang_souhaite: int = 200,
-    note_m1_perso: float = 13,
-    note_m2_perso: float = 13,
-    rho: float = 0.5,
-    rng: np.random.Generator | None = None,
-    batch: int = 250,
-    n_workers: int = 1,
-    *,
-    _thread_pool_max_workers: int | None = None,
-) -> Tuple[float, float]:
-    """Estimate the probability of achieving *rang_souhaite*.
-
-    Parameters
-    ----------
-    n_simulations : int, default 10000
-        Number of Monte‑Carlo cohorts.
-    rang_souhaite : int, default 124
-        Target rank (global position among 884 classmates).
-    note_m1_perso, note_m2_perso : float
-        Personal M1/M2 marks.
-    rho : float, default 0.5
-        Rank‑to‑rank correlation between M1 and M2.
-    rng : numpy.random.Generator, optional
-        Custom RNG for reproducibility (ignored when *n_workers > 1*).
-    batch : int, default 250
-        Cohorts are simulated in batches of this size for memory efficiency.
-    n_workers : int, default 1
-        Number of worker threads.  ``1`` keeps the original serial behaviour.
-    _thread_pool_max_workers : int | None
-        Internal knob to override the size of the pool (for testing).
-    """
-    if n_workers < 1:
-        raise ValueError("n_workers must be ≥ 1")
-
-    if n_workers == 1:
-        # Keep the original deterministic behaviour when a custom RNG is given.
-        seed = None if rng is None else rng.bit_generator.random_raw()
-        n_ok = _simulate_chunk(
-            n_simulations,
-            rang_souhaite,
-            note_m1_perso,
-            note_m2_perso,
-            rho,
-            batch,
-            seed,
+    try:
+        sheet = get_google_sheet(st.secrets["GOOGLE_SHEET_KEY"], dict(st.secrets))
+        success, status = collect_to_google_sheet(
+            sheet,
+            (nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rang_souhaite)
         )
-        p = n_ok / n_simulations
-        se = np.sqrt(p * (1 - p) / n_simulations)
-        return p, se
 
-    # ---------------------------------------------------------------------
-    # Parallel case: split the workload across *n_workers* threads.
-    # ---------------------------------------------------------------------
-    # We purposely spawn fresh RNGs in each worker so that their streams are
-    # independent.  Seeds are derived from NumPy's BitGenerator for safety.
-    global_seed = (
-        np.random.SeedSequence() if rng is None else rng.bit_generator.seed_seq
-    )
-    child_seeds: List[int] = global_seed.spawn(n_workers)
+        if not success and status == "DUPLICATE":
+            st.error("🚫 Simulation déjà enregistrée. Contactez l’administrateur pour une nouvelle tentative.")
+            st.stop()
 
-    # Distribute the total number of simulations as evenly as possible.
-    base = n_simulations // n_workers
-    sims_per_worker = [base] * n_workers
-    for i in range(n_simulations % n_workers):
-        sims_per_worker[i] += 1
-
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=_thread_pool_max_workers or n_workers
-    ) as pool:
-        futs = [
-            pool.submit(
-                _simulate_chunk,
-                n_simulations=sims,
-                rang_souhaite=rang_souhaite,
-                note_m1_perso=note_m1_perso,
-                note_m2_perso=note_m2_perso,
-                rho=rho,
-                batch=batch,
-                seed=int(child_seeds[i].generate_state(1)[0]),
-            )
-            for i, sims in enumerate(sims_per_worker)
-        ]
-        n_ok = sum(f.result() for f in concurrent.futures.as_completed(futs))
-
-    p = n_ok / n_simulations
-    se = np.sqrt(p * (1 - p) / n_simulations)
-    return p, se
-
-
-# ---------------------------------------------------------------------------
-# Cohort generation & export helpers (unchanged)
-# ---------------------------------------------------------------------------
-
-
-def simulate_one_cohort(
-    rho: float = 0.5, seed: int | None = None
-) -> pd.DataFrame:
-    rng = np.random.default_rng(seed)
-    z = rng.multivariate_normal(
-        [0.0, 0.0], [[1.0, rho], [rho, 1.0]], size=NB_CLASSMATES
-    )
-
-    rank_m1 = np.argsort(z[:, 0]).argsort() + 1
-    rank_m2 = np.argsort(z[:, 1]).argsort() + 1
-
-    df = (
-        pd.DataFrame(
-            {
-                "group": GROUP_LABELS,
-                "rank_m2": rank_m2,
-                "rank_in_group": _rank_inside_groups(rank_m2),
-                "note_m1": _m1_from_ranks(rank_m1),
-                "note_m2": _m2_from_ranks(rank_m2),
-            }
+        p, se = simulate_student_ranking(
+            n_simulations=n,
+            rang_souhaite=rang_souhaite,
+            note_m1_perso=note_m1,
+            note_m2_perso=note_m2,
+            rho=rho,
+            n_workers=n_workers,
         )
-        .sort_values(["group", "rank_in_group"])
-        .reset_index(drop=True)
-    )
 
-    return df
+        if show_graph:
+            st.subheader("📉 Probabilité selon le rang souhaité")
+            fig, ax = plt.subplots()
+            rhos = [0.8, 0.9, 1.0]
+            ranks = list(range(max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2))
 
+            progress_bar = st.progress(0)
+            total = len(rhos) * len(ranks)
+            count = 0
 
-def cohort_to_excel(
-    rho: float = 0.7, seed: int | None = None, path: str | Path = "cohort.xlsx"
-) -> Path:
-    df = simulate_one_cohort(rho=rho, seed=seed)
-    path = Path(path).expanduser().resolve()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_excel(path, index=False)
-    return path
+            for r in rhos:
+                pvals = []
+                for target_rank in ranks:
+                    p_y, _ = simulate_student_ranking(
+                        rang_souhaite=target_rank,
+                        rho=r,
+                        n_simulations=1000,
+                        note_m1_perso=note_m1,
+                        note_m2_perso=note_m2,
+                        n_workers=n_workers,
+                    )
+                    pvals.append(p_y)
+                    count += 1
+                    progress_bar.progress(count / total)
+
+                ax.plot(ranks, pvals, label=f"ρ = {r}")
+            progress_bar.empty()
+            ax.set_xlabel("Rang souhaité")
+            ax.set_ylabel("Probabilité")
+            ax.legend()
+            ax.grid(True)
+            st.pyplot(fig)
+
+        st.success(f"📊 Probabilité d’être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%")
+
+        st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
+        df = get_dataframe_from_sheet(sheet)
+        rho_empirique = calculate_rho(df)
+        if rho_empirique:
+            st.dataframe(df[["note m1", "note m2"]])
+            st.success(f"🔗 Corrélation empirique observée : **{rho_empirique:.3f}**")
+        else:
+            st.warning(f"📉 Pas assez de données pour calculer une corrélation fiable : {len(df)}")
+
+    except Exception as e:
+        st.error(f"❌ Erreur : {e}")
