@@ -318,5 +318,5 @@ if st.button("Lancer la simulation"):
         )
     # Affichage du ρ empirique à la fin de la page
     st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
-    if st.button("Calculer le ρ empirique"):
-        afficher_rho_empirique()
+if st.button("Calculer le ρ empirique"):
+    afficher_rho_empirique()
