@@ -164,5 +164,8 @@ if st.button("Lancer la simulation"):
             ax.legend()
             st.pyplot(fig)
         st.success(
-            f"📊 Probabilité d'être dans le top {rang_souhaite} : {p:.2%} ± {se:.2%}"
+            (
+                f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : "
+                f"{int(p * 100)}% ± {int(se * 100)}%"
+            )
         )
