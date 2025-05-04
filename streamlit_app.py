@@ -9,6 +9,10 @@ import pandas as pd
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
 from scipy.stats import pearsonr
+from streamlit_js_cookie import st_cookie_manager
+
+cookie_manager = st_cookie_manager()
+COOKIE_KEY = "simulation_lock"
 
 from simulation import (
     simulate_student_ranking,
@@ -23,6 +27,13 @@ for key in [
 ]:
     if key not in st.session_state:
         st.session_state[key] = None
+
+cookie_data = cookie_manager.get(COOKIE_KEY)
+if cookie_data and isinstance(cookie_data, dict):
+    st.session_state["rank_m1_locked"] = int(cookie_data.get("rank_m1", 0))
+    st.session_state["rank_m2_locked"] = int(cookie_data.get("rank_m2", 0))
+    st.session_state["size_m2_locked"] = int(cookie_data.get("size_m2", 0))
+    st.session_state["nom_las_locked"] = cookie_data.get("nom_las", "")
 
 
 def generate_user_hash(rank_m1, size_m2):
@@ -294,12 +305,21 @@ if st.button("Lancer la simulation"):
         nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rang_souhaite
     ):  # Verifie que l'enregistrement a réussi et que l'utilisateur n'a pas déjà enregistré une simulation
 
-        # Verrouille les champs après enregistrement
         if st.session_state["rank_m1_locked"] is None:
             st.session_state["rank_m1_locked"] = rank_m1
             st.session_state["rank_m2_locked"] = rank_m2
             st.session_state["size_m2_locked"] = size_m2
             st.session_state["nom_las_locked"] = nom_las
+
+            cookie_manager.set(
+                COOKIE_KEY,
+                {
+                    "rank_m1": rank_m1,
+                    "rank_m2": rank_m2,
+                    "size_m2": size_m2,
+                    "nom_las": nom_las,
+                },
+            )
 
         p, se = simulate_student_ranking(
             n_simulations=n,
