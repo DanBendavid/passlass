@@ -270,5 +270,13 @@ data = {
 }
 
 df = pd.DataFrame(data)
+df = pd.DataFrame(data[1:], columns=data[0])
+
+# Nettoyer les colonnes
+df.columns = df.columns.str.strip().str.lower()
+df = df.reset_index(
+    drop=True
+)  # <-- important pour réaligner les lignes !
+
 rho = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
 st.write("✅ Corrélation de test direct :", rho)
