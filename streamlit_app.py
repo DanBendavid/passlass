@@ -139,7 +139,7 @@ def afficher_rho_empirique():
             f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}** calculé avec {len(df)} notes. la significativité {p}"
         )
         for i, (m1, m2) in enumerate(zip(df["note m1"], df["note m2"])):
-        st.write(f"Ligne {i+1}: M1 = {m1}, M2 = {m2}")
+            st.write(f"Ligne {i+1}: M1 = {m1}, M2 = {m2}")
     except Exception as e:
         st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
 
