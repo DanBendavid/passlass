@@ -122,9 +122,9 @@ def _simulate_chunk(
 
 def simulate_student_ranking(
     n_simulations: int = 10000,
-    rang_souhaite: int = 124,
-    note_m1_perso: float = 12.825,
-    note_m2_perso: float = 17.233,
+    rang_souhaite: int = 200,
+    note_m1_perso: float = 13,
+    note_m2_perso: float = 13,
     rho: float = 0.5,
     rng: np.random.Generator | None = None,
     batch: int = 250,
