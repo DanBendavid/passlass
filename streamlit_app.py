@@ -104,16 +104,23 @@ def afficher_rho_empirique():
         client = gspread.authorize(creds)
         sheet = client.open_by_key(sheet_id).sheet1
 
-        # Lire les données dans un DataFrame
+        # Lire les données
         data = sheet.get_all_values()
-        df = pd.DataFrame(data[1:], columns=data[0])  # [1:] saute l'en-tête
+        df = pd.DataFrame(data[1:], columns=data[0])
 
-        # Convertir les colonnes de notes en float
-        df["Note M1"] = pd.to_numeric(df["Note M1"], errors="coerce")
-        df["Note M2"] = pd.to_numeric(df["Note M2"], errors="coerce")
+        # Nettoyer les colonnes
+        df.columns = df.columns.str.strip().str.lower()
 
-        # Supprimer les lignes avec valeurs manquantes
-        df = df.dropna(subset=["Note M1", "Note M2"])
+        # Convertir les notes : remplacer la virgule par un point
+        df["note m1"] = (
+            df["note m1"].str.replace(",", ".", regex=False).astype(float)
+        )
+        df["note m2"] = (
+            df["note m2"].str.replace(",", ".", regex=False).astype(float)
+        )
+
+        # Supprimer les lignes incomplètes
+        df = df.dropna(subset=["note m1", "note m2"])
 
         if len(df) < 3:
             st.warning(
@@ -121,8 +128,8 @@ def afficher_rho_empirique():
             )
             return False
 
-        # Calcul de la corrélation de Pearson
-        rho_e = np.corrcoef(df["Note M1"], df["Note M2"])[0, 1]
+        # Corrélation de Pearson
+        rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
         st.success(
             f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}**"
         )
