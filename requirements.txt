@@ -6,4 +6,4 @@ gspread
 oauth2client
 matplotlib
 datetime
-scipy.stats
+scipy
