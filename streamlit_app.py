@@ -231,6 +231,8 @@ if st.button("Lancer la simulation"):
             (
                 f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : "
                 f"{int(p * 100)}% ± {int(se * 100)}%"
-                afficher_rho_empirique()
             )
         )
+# Affichage du ρ empirique à la fin de la page
+st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
+afficher_rho_empirique()
