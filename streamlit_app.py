@@ -148,7 +148,7 @@ if st.button("Lancer la simulation"):
             for r in rhos:
                 pvals = []
                 for target_rank in ranks:
-                    p = simulate_student_ranking(
+                    p_y = simulate_student_ranking(
                         rang_souhaite=target_rank,
                         rho=r,
                         n_simulations=1000,
@@ -156,7 +156,7 @@ if st.button("Lancer la simulation"):
                         note_m2_perso=note_m2,
                         n_workers=n_workers,
                     )[0]
-                    pvals.append(p)
+                    pvals.append(p_y)
 
                     step += 1
                     progress_bar.progress(step / total_steps)
