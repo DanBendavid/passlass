@@ -291,10 +291,16 @@ st.text(
 )
 
 # Inputs verrouillés si déjà soumis
-rank_m1_locked = int(st.session_state.get("rank_m1_locked", 0) or 0)
+# rank_m1_locked = int(st.session_state.get("rank_m1_locked", 0) or 0)
 nom_las_locked = st.session_state.get("nom_las_locked", "")
 size_m2_locked = int(st.session_state.get("size_m2_locked", 0) or 0)
 rank_m2_locked = int(st.session_state.get("rank_m2_locked", 0) or 0)
+
+try:
+    rank_m1_locked = int(st.session_state.get("rank_m1_locked", 0) or 0)
+except Exception as e:
+    st.error(f"[Debug] Erreur lors du cast de rank_m1_locked : {e}")
+    rank_m1_locked = 0
 
 
 rank_m1 = st.number_input(
