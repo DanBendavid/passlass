@@ -57,13 +57,11 @@ def collect_to_google_sheet(
             sheet.append_row(header)
         else:
             hashes = [row[-1] for row in rows[1:] if len(row) > 6]
-            las_names = [row[0] for row in rows[1:] if len(row) > 0]
-            if nom_las in las_names:
-                if user_hash not in hashes:
-                    st.error(
-                        "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
-                    )
-                    return False  # ne pas continuer
+            if user_hash in hashes:
+                st.error(
+                    "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
+                )
+                return False  # ne pas continuer
 
         # Ajouter la ligne avec le hash
         sheet.append_row(
