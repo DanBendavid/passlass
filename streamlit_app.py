@@ -15,20 +15,24 @@ from scipy.stats import pearsonr
 def get_cookie(name):
     script = f"""
         <script>
-        function getCookie(name) {{
-            let value = "; " + document.cookie;
-            let parts = value.split("; " + name + "=");
-            if (parts.length == 2) return parts.pop().split(";").shift();
-        }}
-        const streamlitDoc = window.parent.document;
-        const cookieValue = getCookie("{name}");
-        if (cookieValue) {{
-            window.parent.postMessage({{type: 'streamlit:setComponentValue', key: '{name}', value: cookieValue}}, '*');
+        const value = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('{name}='))
+            ?.split('=')[1];
+
+        if (value) {{
+            const streamlitInput = window.parent.document.querySelector('iframe');
+            window.parent.postMessage({{
+                isStreamlitMessage: true,
+                type: 'streamlit:setComponentValue',
+                key: '{name}',
+                value: value
+            }}, '*');
         }}
         </script>
     """
     components.html(script, height=0)
-    return st.query_params().get(name, [None])[0]
+    return None  # Toujours None ici, la valeur sera injectée plus tard
 
 
 def set_cookie(name, value):
