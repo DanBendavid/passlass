@@ -295,7 +295,7 @@ rank_m1 = st.number_input(
     min_value=1,
     max_value=1799,
     value=st.session_state.get("rank_m1_locked") or 100,
-    disabled=st.session_state.ge("rank_m1_locked") is not None,
+    disabled=st.session_state.get("rank_m1_locked") is not None,
 )
 
 nom_las = st.text_input(
