@@ -14,6 +14,16 @@ from simulation import (
     simulate_student_ranking,
 )  # adapte l'import selon ton fichier
 
+# --- Session state init ---
+for key in [
+    "rank_m1_locked",
+    "rank_m2_locked",
+    "size_m2_locked",
+    "nom_las_locked",
+]:
+    if key not in st.session_state:
+        st.session_state[key] = None
+
 
 def generate_user_hash(rank_m1, size_m2):
     key = f"{rank_m1}-{size_m2}"
