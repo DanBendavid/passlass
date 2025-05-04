@@ -60,8 +60,9 @@ for key in [
 
 # Crée un champ texte caché que le JS peut remplir
 cookie_val = st.text_input(
-    "cookie", value="", key="simu_lock_hidden", label_visibility="collapsed"
+    label="", value="", key="simu_lock_hidden", label_visibility="hidden"
 )
+
 
 # Injecte le script JS pour remplir ce champ
 get_cookie("simu_lock")
