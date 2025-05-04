@@ -46,28 +46,26 @@ components.html(
     height=0,
 )
 
-# Init session state
-for key in [
-    "rank_m1_locked",
-    "rank_m2_locked",
-    "size_m2_locked",
-    "nom_las_locked",
-]:
-    if key not in st.session_state:
-        st.session_state[key] = None
 
-# Si cookie lu, remplir session_state
-if cookie_val and cookie_val.count("-") == 3:
+if (
+    "cookie_processed" not in st.session_state
+    and cookie_val
+    and cookie_val.count("-") == 3
+):
     try:
-        rank_m1_c, rank_m2_c, size_m2_c, nom_las_c = cookie_val.split("-")
-        st.session_state["rank_m1_locked"] = int(rank_m1_c)
-        st.session_state["rank_m2_locked"] = int(rank_m2_c)
-        st.session_state["size_m2_locked"] = int(size_m2_c)
-        st.session_state["nom_las_locked"] = nom_las_c
-        st.info("🔒 Simulation déjà effectuée. Champs verrouillés.")
-    except Exception as e:
-        st.warning(f"⚠️ Cookie mal formé : {e}")
-
+        r1, r2, sz, nom = cookie_val.split("-")
+        st.session_state.update(
+            {
+                "rank_m1_locked": int(r1),
+                "rank_m2_locked": int(r2),
+                "size_m2_locked": int(sz),
+                "nom_las_locked": nom,
+                "cookie_processed": True,  # évite de re-parser à chaque rerun
+            }
+        )
+        st.experimental_rerun()  # relance avec les champs désactivés
+    except ValueError:
+        st.warning("Cookie mal formé")
 
 from simulation import (
     simulate_student_ranking,
