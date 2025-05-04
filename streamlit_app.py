@@ -1,6 +1,6 @@
 import hashlib
 import json
-
+from datetime import datetime
 import gspread
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -54,6 +54,7 @@ def collect_to_google_sheet(
                 "Note M2",
                 "Hash",
                 "Rang souhaite",
+                "Timestamp",
             ]
             sheet.append_row(header)
         else:
@@ -63,7 +64,7 @@ def collect_to_google_sheet(
                     "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
                 )
                 return False  # ne pas continuer
-
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Format du timestamp
         # Ajouter la ligne avec le hash
         sheet.append_row(
             [
@@ -75,6 +76,7 @@ def collect_to_google_sheet(
                 note_m2,
                 user_hash,
                 rang_souhaite,
+                timestamp,
             ]
         )
         st.success("✅ Partager ce lien avec vos amis.")
