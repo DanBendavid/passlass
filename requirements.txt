@@ -7,4 +7,3 @@ oauth2client
 matplotlib
 datetime
 scipy
-streamlit-js-cookie

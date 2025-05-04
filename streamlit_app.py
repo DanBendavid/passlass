@@ -7,12 +7,38 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from oauth2client.service_account import ServiceAccountCredentials
 from scipy.stats import pearsonr
-from streamlit_js_cookie import st_cookie_manager
 
-cookie_manager = st_cookie_manager()
-COOKIE_KEY = "simulation_lock"
+
+def get_cookie(name):
+    script = f"""
+        <script>
+        function getCookie(name) {{
+            let value = "; " + document.cookie;
+            let parts = value.split("; " + name + "=");
+            if (parts.length == 2) return parts.pop().split(";").shift();
+        }}
+        const streamlitDoc = window.parent.document;
+        const cookieValue = getCookie("{name}");
+        if (cookieValue) {{
+            window.parent.postMessage({{type: 'streamlit:setComponentValue', key: '{name}', value: cookieValue}}, '*');
+        }}
+        </script>
+    """
+    components.html(script, height=0)
+    return st.experimental_get_query_params().get(name, [None])[0]
+
+
+def set_cookie(name, value):
+    script = f"""
+        <script>
+        document.cookie = "{name}={value};path=/;SameSite=Lax;";
+        </script>
+    """
+    components.html(script, height=0)
+
 
 from simulation import (
     simulate_student_ranking,
@@ -28,12 +54,16 @@ for key in [
     if key not in st.session_state:
         st.session_state[key] = None
 
-cookie_data = cookie_manager.get(COOKIE_KEY)
-if cookie_data and isinstance(cookie_data, dict):
-    st.session_state["rank_m1_locked"] = int(cookie_data.get("rank_m1", 0))
-    st.session_state["rank_m2_locked"] = int(cookie_data.get("rank_m2", 0))
-    st.session_state["size_m2_locked"] = int(cookie_data.get("size_m2", 0))
-    st.session_state["nom_las_locked"] = cookie_data.get("nom_las", "")
+cookie_val = get_cookie("simu_lock")
+if cookie_val and cookie_val.count("-") == 3:
+    try:
+        rank_m1_c, rank_m2_c, size_m2_c, nom_las_c = cookie_val.split("-")
+        st.session_state["rank_m1_locked"] = int(rank_m1_c)
+        st.session_state["rank_m2_locked"] = int(rank_m2_c)
+        st.session_state["size_m2_locked"] = int(size_m2_c)
+        st.session_state["nom_las_locked"] = nom_las_c
+    except Exception:
+        pass
 
 
 def generate_user_hash(rank_m1, size_m2):
@@ -305,21 +335,8 @@ if st.button("Lancer la simulation"):
         nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rang_souhaite
     ):  # Verifie que l'enregistrement a réussi et que l'utilisateur n'a pas déjà enregistré une simulation
 
-        if st.session_state["rank_m1_locked"] is None:
-            st.session_state["rank_m1_locked"] = rank_m1
-            st.session_state["rank_m2_locked"] = rank_m2
-            st.session_state["size_m2_locked"] = size_m2
-            st.session_state["nom_las_locked"] = nom_las
-
-            cookie_manager.set(
-                COOKIE_KEY,
-                {
-                    "rank_m1": rank_m1,
-                    "rank_m2": rank_m2,
-                    "size_m2": size_m2,
-                    "nom_las": nom_las,
-                },
-            )
+        cookie_str = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
+        set_cookie("simu_lock", cookie_str)
 
         p, se = simulate_student_ranking(
             n_simulations=n,
