@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
+from scipy.stats import pearsonr
 
 from simulation import (
     simulate_student_ranking,
@@ -132,9 +133,10 @@ def afficher_rho_empirique():
         #        st.dataframe(df[["note m1", "note m2"]])
 
         # Corrélation de Pearson
-        rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
+        rho_e, p = pearsonr(df["note m1"], df["note m2"])
+        # rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
         st.success(
-            f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}** calculé avec {len(df)} notes"
+            f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}** calculé avec {len(df)} notes. la significativité {p}"
         )
 
     except Exception as e:
@@ -315,4 +317,4 @@ if st.button("Lancer la simulation"):
         )
     # Affichage du ρ empirique à la fin de la page
     st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
-    afficher_rho_empirique_test()
+    afficher_rho_empirique()
