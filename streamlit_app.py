@@ -131,7 +131,7 @@ def afficher_rho_empirique():
         # Corrélation de Pearson
         rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
         st.success(
-            f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}**"
+            f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}** calculé avec {len(df)} notes"
         )
 
     except Exception as e:
