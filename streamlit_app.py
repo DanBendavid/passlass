@@ -129,7 +129,7 @@ def afficher_rho_empirique():
             return False
 
         st.subheader("📋 Données utilisées pour le calcul de ρ")
-        st.dataframe(df[["note m1", "note m2"]])
+        #        st.dataframe(df[["note m1", "note m2"]])
 
         # Corrélation de Pearson
         rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
@@ -139,6 +139,79 @@ def afficher_rho_empirique():
 
     except Exception as e:
         st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
+
+
+def afficher_rho_empirique_test():
+    try:
+        # Authentification Google Sheets
+        sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
+        json_keyfile = dict(st.secrets)
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            json_keyfile, scope
+        )
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(sheet_id).sheet1
+
+        # Lecture des données brutes
+        data = sheet.get_all_values()
+        df = pd.DataFrame(data[1:], columns=data[0])
+        df.columns = df.columns.str.strip().str.lower()
+
+        # Vérification de la présence des colonnes
+        colonnes_attendues = {"note m1", "note m2"}
+        if not colonnes_attendues.issubset(df.columns):
+            st.error("❌ Colonnes 'Note M1' et 'Note M2' manquantes.")
+            return False
+
+        # Nettoyage des colonnes
+        df["note m1"] = (
+            df["note m1"].str.replace(",", ".", regex=False).astype(str)
+        )
+        df["note m2"] = (
+            df["note m2"].str.replace(",", ".", regex=False).astype(str)
+        )
+
+        # Filtrer uniquement les lignes où les deux colonnes sont numériques
+        df_clean = df[
+            df["note m1"].str.replace(".", "", 1).str.isnumeric()
+            & df["note m2"].str.replace(".", "", 1).str.isnumeric()
+        ]
+        df_clean["note m1"] = df_clean["note m1"].astype(float)
+        df_clean["note m2"] = df_clean["note m2"].astype(float)
+
+        st.subheader("🔎 Données nettoyées (utilisées pour le test)")
+        st.dataframe(df_clean[["note m1", "note m2"]])
+
+        st.write("📊 Types de données :")
+        st.write(df_clean[["note m1", "note m2"]].dtypes)
+
+        st.write("❓ Valeurs manquantes :")
+        st.write(df_clean[["note m1", "note m2"]].isna().sum())
+
+        # Affichage graphique
+        fig, ax = plt.subplots()
+        ax.scatter(df_clean["note m1"], df_clean["note m2"])
+        ax.set_xlabel("Note M1")
+        ax.set_ylabel("Note M2")
+        ax.set_title("Nuage de points : Note M1 vs Note M2")
+        st.pyplot(fig)
+
+        if len(df_clean) < 3:
+            st.warning(
+                f"⚠️ Pas assez de données fiables pour une corrélation : {len(df_clean)} lignes valides"
+            )
+            return False
+
+        # Corrélation via pandas
+        rho = df_clean["note m1"].corr(df_clean["note m2"])
+        st.success(f"✅ Corrélation testée avec `.corr()` : **{rho:.3f}**")
+
+    except Exception as e:
+        st.error(f"❌ Erreur pendant le test de corrélation : {e}")
 
 
 st.title("Simulation de classement")
@@ -242,4 +315,4 @@ if st.button("Lancer la simulation"):
         )
     # Affichage du ρ empirique à la fin de la page
     st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
-    afficher_rho_empirique()
+    afficher_rho_empirique_test()
