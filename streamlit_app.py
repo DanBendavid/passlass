@@ -122,9 +122,6 @@ if st.button("Lancer la simulation"):
             n_workers=n_workers,
         )
 
-        st.success(
-            f"📊 Probabilité d'être dans le top {rang_souhaite} : {p:.2%} ± {se:.2%}"
-        )
         if show_graph:
             st.subheader("📉 Probabilité selon le rang souhaité")
 
@@ -136,9 +133,14 @@ if st.button("Lancer la simulation"):
             )
             fig, ax = plt.subplots()
 
+            progress_bar = st.progress(0)
+            total_steps = len(rhos) * len(ranks)
+            step = 0
+
             for r in rhos:
-                pvals = [
-                    simulate_student_ranking(
+                pvals = []
+                for target_rank in ranks:
+                    p = simulate_student_ranking(
                         rang_souhaite=target_rank,
                         rho=r,
                         n_simulations=1000,
@@ -146,9 +148,14 @@ if st.button("Lancer la simulation"):
                         note_m2_perso=note_m2,
                         n_workers=n_workers,
                     )[0]
-                    for target_rank in ranks
-                ]
+                    pvals.append(p)
+
+                    step += 1
+                    progress_bar.progress(step / total_steps)
+
                 ax.plot(ranks, pvals, label=f"ρ = {r}")
+
+            progress_bar.empty()  # Supprime la barre une fois terminé
 
             ax.set_xlabel("Rang souhaité")
             ax.set_ylabel("Probabilité")
@@ -156,3 +163,6 @@ if st.button("Lancer la simulation"):
             ax.grid(True)
             ax.legend()
             st.pyplot(fig)
+        st.success(
+            f"📊 Probabilité d'être dans le top {rang_souhaite} : {p:.2%} ± {se:.2%}"
+        )
