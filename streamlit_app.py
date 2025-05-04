@@ -231,7 +231,6 @@ if st.button("Lancer la simulation"):
             (
                 f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : "
                 f"{int(p * 100)}% ± {int(se * 100)}%"
+                afficher_rho_empirique()
             )
         )
-        if afficher_rho_empirique():
-            return
