@@ -13,44 +13,45 @@ from scipy.stats import pearsonr
 
 from simulation import simulate_student_ranking
 
-COOKIE_NAME = "simu_lock"
+COOKIE = "simu_lock"
 
-# Crée un champ texte caché que le JS peut remplir
-cookie_val = st.text_input(
-    label="", value="", key=COOKIE_NAME, label_visibility="collapsed"
-)
-
-# 2. JavaScript : lit le cookie et le colle dans le champ caché
-components.html(
-    f"""
-    <script>
-    const raw = document.cookie.split('; ').find(r => r.startsWith('{COOKIE_NAME}='));
-    if (raw) {{
-        const value = decodeURIComponent(raw.split('=')[1]);
-        const el = document.querySelector('input[data-streamlit-key="{COOKIE_NAME}"]');
-        if (el && el.value !== value) {{
-            el.value = value;
-            el.dispatchEvent(new Event('input', {{ bubbles: true }}));
-        }}
-    }}
-    </script>
-    """,
-    height=0,
-)
-
-
-# 3. Initialisation du session_state (une seule fois)
+# ───────── 1. Initialiser toutes les clés dès le tout début ──────────
 for k in (
     "rank_m1_locked",
     "rank_m2_locked",
     "size_m2_locked",
     "nom_las_locked",
+    "cookie_processed",
 ):
     st.session_state.setdefault(k, None)
 
-# 4. Si cookie lu & pas encore traité, remplir le session_state et relancer
+# ───────── 2. Champ caché + JS pour lire le cookie ──────────
+cookie_val = st.text_input(
+    "hidden_cookie_field",  # label exigé, mais on le masque
+    value="",
+    key=COOKIE,
+    label_visibility="collapsed",
+)
+
+components.html(
+    f"""
+    <script>
+    const raw = document.cookie.split('; ').find(r => r.startsWith('{COOKIE}='));
+    if (raw) {{
+        const value = decodeURIComponent(raw.split('=')[1]);
+        const el = document.querySelector('input[data-streamlit-key="{COOKIE}"]');
+        if (el && el.value !== value) {{
+            el.value = value;
+            el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+        }}
+    }}
+    </script>""",
+    height=0,
+)
+
+# ───────── 3. Copier cookie → session_state la toute première fois ───
 if (
-    "cookie_processed" not in st.session_state
+    st.session_state.get("cookie_processed") is None
     and cookie_val
     and cookie_val.count("-") == 3
 ):
@@ -65,21 +66,17 @@ if (
                 "cookie_processed": True,
             }
         )
-        st.experimental_rerun()  # force le rerun avec champs verrouillés
+        st.experimental_rerun()  # relance avec champs désactivés
     except ValueError:
-        st.warning("Cookie mal formé ; il sera ignoré.")
+        st.warning("Cookie mal formé ; ignoré.")
 
 
-# ────────────────────────────────────────────────────────────────
-# Fonctions utilitaires
-def set_cookie(name: str, value: str):
+# ───────── 4. Fonctions utilitaires ──────────
+def set_cookie(val: str):
     components.html(
-        f"""
-        <script>
-        document.cookie = "{name}=" + encodeURIComponent("{value}") +
-                          "; path=/; SameSite=Lax;";
-        </script>
-        """,
+        f"""<script>
+        document.cookie = "{COOKIE}=" + encodeURIComponent("{val}") + "; path=/; SameSite=Lax;";
+        </script>""",
         height=0,
     )
 
@@ -297,30 +294,30 @@ rank_m1 = st.number_input(
     "🎓 Votre rang en PASS (sur 1799)",
     min_value=1,
     max_value=1799,
-    value=st.session_state["rank_m1_locked"] or 100,
-    disabled=st.session_state["rank_m1_locked"] is not None,
+    value=st.session_state.get["rank_m1_locked"] or 100,
+    disabled=st.session_state.get["rank_m1_locked"] is not None,
 )
 
 nom_las = st.text_input(
     "🏫 Nom de votre LAS",
-    value=st.session_state["nom_las_locked"] or "",
+    value=st.session_state.get["nom_las_locked"] or "",
     max_chars=100,
-    disabled=st.session_state["nom_las_locked"] is not None,
+    disabled=st.session_state.get["nom_las_locked"] is not None,
 )
 
 size_m2 = st.number_input(
     "👥 Effectif total de votre LAS2",
     min_value=2,
-    value=st.session_state["size_m2_locked"] or 300,
-    disabled=st.session_state["size_m2_locked"] is not None,
+    value=st.session_state.get["size_m2_locked"] or 300,
+    disabled=st.session_state.get["size_m2_locked"] is not None,
 )
 
 rank_m2 = st.number_input(
     "🎓 Votre rang en LAS2",
     min_value=1,
     max_value=size_m2,
-    value=st.session_state["rank_m2_locked"] or 50,
-    disabled=st.session_state["rank_m2_locked"] is not None,
+    value=st.session_state.get["rank_m2_locked"] or 50,
+    disabled=st.session_state.get["rank_m2_locked"] is not None,
 )
 
 rang_souhaite = st.number_input(
