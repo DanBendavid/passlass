@@ -89,59 +89,27 @@ def collect_to_google_sheet(
         st.error(f"Erreur : {e}")
 
 
-def afficher_rho_empirique():
-    try:
-        # Authentification Google Sheets
-        sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
-        json_keyfile = dict(st.secrets)
-        scope = [
-            "https://spreadsheets.google.com/feeds",
-            "https://www.googleapis.com/auth/drive",
-        ]
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(
-            json_keyfile, scope
-        )
-        client = gspread.authorize(creds)
-        sheet = client.open_by_key(sheet_id).sheet1
+def get_dataframe_from_sheet(sheet):
+    data = sheet.get_all_values()
+    df = pd.DataFrame(data[1:], columns=data[0])
+    df.columns = df.columns.str.strip().str.lower()
 
-        # Lire les données
-        data = sheet.get_all_values()
-        df = pd.DataFrame(data[1:], columns=data[0])
+    def to_float(x):
+        try:
+            return float(str(x).replace(",", "."))
+        except:
+            return np.nan
 
-        # Nettoyer les colonnes
-        df.columns = df.columns.str.strip().str.lower()
-        df = df.reset_index(
-            drop=True
-        )  # <-- important pour réaligner les lignes !
+    df["note m1"] = df["note m1"].apply(to_float)
+    df["note m2"] = df["note m2"].apply(to_float)
+    df = df.dropna(subset=["note m1", "note m2"]).reset_index(drop=True)
+    return df
 
-        # Convertir les notes : remplacer la virgule par un point
-        df["note m1"] = (
-            df["note m1"].str.replace(",", ".", regex=False).astype(float)
-        )
-        df["note m2"] = (
-            df["note m2"].str.replace(",", ".", regex=False).astype(float)
-        )
 
-        # Supprimer les lignes incomplètes
-        df = df.dropna(subset=["note m1", "note m2"])
-
-        if len(df) < 3:
-            st.warning(
-                f"📉 Pas assez de données pour calculer une corrélation fiable : {len(df)}"
-            )
-            return False
-
-        st.subheader("📋 Données utilisées pour le calcul de ρ")
-        st.dataframe(df[["note m1", "note m2"]])
-
-        # Corrélation de Pearson
-        rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
-        st.success(
-            f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}** calculé avec {len(df)} notes"
-        )
-
-    except Exception as e:
-        st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
+def calculate_rho(df):
+    if len(df) < 3:
+        return None
+    return np.corrcoef(df["note m1"], df["note m2"])[0, 1]
 
 
 st.title("Simulation de classement")
@@ -243,6 +211,16 @@ if st.button("Lancer la simulation"):
         st.success(
             f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
         )
-    # Affichage du ρ empirique à la fin de la page
-    st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
-    afficher_rho_empirique()
+        # Affichage du ρ empirique à la fin de la page
+        st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
+        df = get_dataframe_from_sheet(sheet)
+        rho_empirique = calculate_rho(df)
+        if rho_empirique:
+            st.dataframe(df[["note m1", "note m2"]])
+            st.success(
+                f"🔗 Corrélation empirique observée : **{rho_empirique:.3f}**"
+            )
+        else:
+            st.warning(
+                f"📉 Pas assez de données pour calculer une corrélation fiable : {len(df)}"
+            )
