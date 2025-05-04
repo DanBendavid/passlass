@@ -294,30 +294,30 @@ rank_m1 = st.number_input(
     "🎓 Votre rang en PASS (sur 1799)",
     min_value=1,
     max_value=1799,
-    value=st.session_state.get["rank_m1_locked"] or 100,
-    disabled=st.session_state.get["rank_m1_locked"] is not None,
+    value=st.session_state.get("rank_m1_locked") or 100,
+    disabled=st.session_state.ge("rank_m1_locked") is not None,
 )
 
 nom_las = st.text_input(
     "🏫 Nom de votre LAS",
-    value=st.session_state.get["nom_las_locked"] or "",
+    value=st.session_state.get("nom_las_locked") or "",
     max_chars=100,
-    disabled=st.session_state.get["nom_las_locked"] is not None,
+    disabled=st.session_state.get("nom_las_locked") is not None,
 )
 
 size_m2 = st.number_input(
     "👥 Effectif total de votre LAS2",
     min_value=2,
-    value=st.session_state.get["size_m2_locked"] or 300,
-    disabled=st.session_state.get["size_m2_locked"] is not None,
+    value=st.session_state.get("size_m2_locked") or 300,
+    disabled=st.session_state.get("size_m2_locked") is not None,
 )
 
 rank_m2 = st.number_input(
     "🎓 Votre rang en LAS2",
     min_value=1,
     max_value=size_m2,
-    value=st.session_state.get["rank_m2_locked"] or 50,
-    disabled=st.session_state.get["rank_m2_locked"] is not None,
+    value=st.session_state.get("rank_m2_locked") or 50,
+    disabled=st.session_state.get("rank_m2_locked") is not None,
 )
 
 rang_souhaite = st.number_input(
@@ -359,8 +359,7 @@ if st.button("Lancer la simulation"):
             }
         )
 
-        cookie_str = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
-        set_cookie(COOKIE_NAME, cookie_str)
+        set_cookie(f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}")
 
         p, se = simulate_student_ranking(
             n_simulations=n,
