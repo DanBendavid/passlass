@@ -220,21 +220,42 @@ def afficher_rho_empirique_test():
 st.title("Simulation de classement")
 
 st.text(
-    "Attention une seule simulation est autorisée . Saissez correctement votre rang de Pass et de LAS2"
+    "Attention : une seule simulation avec votre rang PASS et LAS2 est autorisée. Ces champs seront verrouillés."
 )
+
+# Inputs verrouillés si déjà soumis
 rank_m1 = st.number_input(
-    "🎓 Votre rang en PASS (sur 1799)", min_value=1, max_value=1799, value=100
+    "🎓 Votre rang en PASS (sur 1799)",
+    min_value=1,
+    max_value=1799,
+    value=st.session_state["rank_m1_locked"] or 100,
+    disabled=st.session_state["rank_m1_locked"] is not None,
 )
-nom_las = st.text_input("🏫 Nom de votre LAS", max_chars=100)
+
+nom_las = st.text_input(
+    "🏫 Nom de votre LAS",
+    value=st.session_state["nom_las_locked"] or "",
+    max_chars=100,
+    disabled=st.session_state["nom_las_locked"] is not None,
+)
+
 size_m2 = st.number_input(
-    "👥 Effectif total de votre LAS2", min_value=2, value=300
+    "👥 Effectif total de votre LAS2",
+    min_value=2,
+    value=st.session_state["size_m2_locked"] or 300,
+    disabled=st.session_state["size_m2_locked"] is not None,
 )
+
 rank_m2 = st.number_input(
-    "🎓 Votre rang en LAS2", min_value=1, max_value=size_m2, value=50
+    "🎓 Votre rang en LAS2",
+    min_value=1,
+    max_value=size_m2,
+    value=st.session_state["rank_m2_locked"] or 50,
+    disabled=st.session_state["rank_m2_locked"] is not None,
 )
 
 rang_souhaite = st.number_input(
-    "🎯 Rang estimé dans la promo (sur 884)",
+    "🎯 Rang estimé dans la promo -  Simuation autour de ce nombre (sur 884)",
     min_value=1,
     max_value=884,
     value=200,
@@ -262,6 +283,13 @@ if st.button("Lancer la simulation"):
     if collect_to_google_sheet(
         nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rang_souhaite
     ):  # Verifie que l'enregistrement a réussi et que l'utilisateur n'a pas déjà enregistré une simulation
+
+        # Verrouille les champs après enregistrement
+        if st.session_state["rank_m1_locked"] is None:
+            st.session_state["rank_m1_locked"] = rank_m1
+            st.session_state["rank_m2_locked"] = rank_m2
+            st.session_state["size_m2_locked"] = size_m2
+            st.session_state["nom_las_locked"] = nom_las
 
         p, se = simulate_student_ranking(
             n_simulations=n,
