@@ -67,7 +67,7 @@ if (
                 "cookie_processed": True,
             }
         )
-        st.experimental_rerun()  # relance avec champs désactivés
+        st.experimental_set_query_params(rerun="true")  # simule une relance avec champs désactivés
     except ValueError:
         st.warning("Cookie mal formé ; ignoré.")
 
