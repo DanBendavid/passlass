@@ -58,7 +58,15 @@ for key in [
     if key not in st.session_state:
         st.session_state[key] = None
 
-cookie_val = get_cookie("simu_lock")
+# Crée un champ texte caché que le JS peut remplir
+cookie_val = st.text_input(
+    "cookie", value="", key="simu_lock_hidden", label_visibility="collapsed"
+)
+
+# Injecte le script JS pour remplir ce champ
+get_cookie("simu_lock")
+
+# Lecture et traitement du cookie (une fois injecté)
 if cookie_val and cookie_val.count("-") == 3:
     try:
         rank_m1_c, rank_m2_c, size_m2_c, nom_las_c = cookie_val.split("-")
