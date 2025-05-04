@@ -125,7 +125,7 @@ def afficher_rho_empirique():
 
         if len(df) < 50:
             st.warning(
-                "📉 Pas assez de données pour calculer une corrélation fiable. Invitez vos amis."
+                f"📉 Pas assez de données [Progression : {int(len(df)/50*100)}% ] pour calculer une corrélation fiable. Invitez vos amis."
             )
             return False
         else:
@@ -317,6 +317,6 @@ if st.button("Lancer la simulation"):
             f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
         )
     # Affichage du ρ empirique à la fin de la page
-    st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
+st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
 if st.button("Calculer le ρ empirique"):
     afficher_rho_empirique()
