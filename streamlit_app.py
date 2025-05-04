@@ -61,7 +61,7 @@ def collect_to_google_sheet(
             if nom_las in las_names:
                 if user_hash not in hashes:
                     st.error(
-                        "🚫 Une tentative avec un autre classement a déjà été enregistrée."
+                        "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
                     )
                     return False  # ne pas continuer
 
@@ -69,10 +69,10 @@ def collect_to_google_sheet(
         sheet.append_row(
             [nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, user_hash]
         )
-        st.success("✅ Données enregistrées dans Google Sheets.")
+        st.success("✅ Partager ce lien avec vos amis.")
         return True
     except Exception as e:
-        st.error(f"Erreur lors de l'enregistrement dans Google Sheets : {e}")
+        st.error(f"Erreur : {e}")
 
 
 st.title("Simulation de classement")
