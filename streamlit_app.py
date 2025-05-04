@@ -110,6 +110,9 @@ def afficher_rho_empirique():
 
         # Nettoyer les colonnes
         df.columns = df.columns.str.strip().str.lower()
+        df = df.reset_index(
+            drop=True
+        )  # <-- important pour réaligner les lignes !
 
         # Convertir les notes : remplacer la virgule par un point
         df["note m1"] = (
