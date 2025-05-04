@@ -243,3 +243,29 @@ if st.button("Lancer la simulation"):
     # Affichage du ρ empirique à la fin de la page
     st.subheader("🔗 Corrélation empirique entre les notes M1 et M2")
     afficher_rho_empirique()
+
+
+data = {
+    "note m1": [
+        13.45939933,
+        13.60400445,
+        16.1512792,
+        14.44938821,
+        12.83648498,
+        12.83648498,
+        12.83648498,
+    ],
+    "note m2": [
+        16.28458498,
+        16.75889328,
+        16.52173913,
+        19.13043478,
+        17.31225296,
+        17.31225296,
+        17.31225296,
+    ],
+}
+
+df = pd.DataFrame(data)
+rho = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
+st.write("✅ Corrélation de test direct :", rho)
