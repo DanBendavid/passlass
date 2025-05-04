@@ -11,6 +11,7 @@ import streamlit.components.v1 as components
 from oauth2client.service_account import ServiceAccountCredentials
 from scipy.stats import pearsonr
 
+
 def set_cookie(name, value):
     script = f"""
         <script>
@@ -22,7 +23,7 @@ def set_cookie(name, value):
 
 # Crée un champ texte caché que le JS peut remplir
 cookie_val = st.text_input(
-    label="", value="", key="simu_lock_hidden", label_visibility="hidden"
+    label="", value="", key="simu_lock", label_visibility="collapsed"
 )
 
 # JS injecté qui lit le cookie et le met dans le champ invisible
@@ -45,32 +46,13 @@ components.html(
     height=0,
 )
 
-    
-def get_cookie(name):
-    script = f"""
-        <script>
-        const value = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('{name}='))
-            ?.split('=')[1];
-
-        if (value) {{
-            const streamlitInput = window.parent.document.querySelector('iframe');
-            window.parent.postMessage({{
-                isStreamlitMessage: true,
-                type: 'streamlit:setComponentValue',
-                key: '{name}',
-                value: value
-            }}, '*');
-        }}
-        </script>
-    """
-    components.html(script, height=0)
-    return None  # Toujours None ici, la valeur sera injectée plus tard
-
-
 # Init session state
-for key in ["rank_m1_locked", "rank_m2_locked", "size_m2_locked", "nom_las_locked"]:
+for key in [
+    "rank_m1_locked",
+    "rank_m2_locked",
+    "size_m2_locked",
+    "nom_las_locked",
+]:
     if key not in st.session_state:
         st.session_state[key] = None
 
@@ -90,7 +72,6 @@ if cookie_val and cookie_val.count("-") == 3:
 from simulation import (
     simulate_student_ranking,
 )  # adapte l'import selon ton fichier
-
 
 
 def generate_user_hash(rank_m1, size_m2):
