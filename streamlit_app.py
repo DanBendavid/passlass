@@ -117,7 +117,7 @@ def afficher_rho_empirique():
 
         if len(df) < 3:
             st.warning(
-                "📉 Pas assez de données pour calculer une corrélation fiable."
+                f"📉 Pas assez de données pour calculer une corrélation fiable : {len(df)}"
             )
             return False
 
