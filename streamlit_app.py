@@ -26,7 +26,7 @@ def convert_rank_to_note_m2(rank_m2, size):
 
 
 def collect_to_google_sheet(
-    nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2
+    nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rank_souhaite
 ):
     try:
         sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
@@ -53,6 +53,7 @@ def collect_to_google_sheet(
                 "Note M1",
                 "Note M2",
                 "Hash",
+                "Rang souhaite",
             ]
             sheet.append_row(header)
         else:
@@ -65,7 +66,16 @@ def collect_to_google_sheet(
 
         # Ajouter la ligne avec le hash
         sheet.append_row(
-            [nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, user_hash]
+            [
+                nom_las,
+                rank_m1,
+                rank_m2,
+                size_m2,
+                note_m1,
+                note_m2,
+                user_hash,
+                rang_souhaite,
+            ]
         )
         st.success("✅ Partager ce lien avec vos amis.")
         return True
@@ -86,10 +96,10 @@ size_m2 = st.number_input(
     "👥 Effectif total de votre LAS2", min_value=2, value=300
 )
 rang_souhaite = st.number_input(
-    "🎯 Rang souhaité dans la promo (sur 884)",
+    "🎯 Rang estimé dans la promo (sur 884)",
     min_value=1,
     max_value=884,
-    value=150,
+    value=200,
 )
 rho = st.slider("🔗 Corrélation PASS / LASS", 0.7, 1.0, 0.85, step=0.05)
 n = st.number_input(
@@ -108,7 +118,7 @@ if st.button("Lancer la simulation"):
     st.write(f"🧮 Note M2 estimée : {note_m2:.2f}")
 
     if collect_to_google_sheet(
-        nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2
+        nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rang_souhaite
     ):  # Verifie que l'enregistrement a réussi et que l'utilisateur n'a pas déjà enregistré une simulation
 
         p, se = simulate_student_ranking(
