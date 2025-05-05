@@ -25,10 +25,10 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-GROUP_SIZES_FULL = np.array([254, 311, 320])
+GROUP_SIZES_FULL = np.array([254, 280, 320])
 GROUP_SIZES: np.ndarray = GROUP_SIZES_FULL.copy()
 GROUP_SIZES[-1] -= 1  # 319
-NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 884
+NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 854
 
 GROUP_LABELS: np.ndarray = np.repeat(np.arange(3), GROUP_SIZES)  # 0/1/2
 
