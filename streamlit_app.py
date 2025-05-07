@@ -50,7 +50,7 @@ components.html(
                 el.dispatchEvent(new Event('input', {{ bubbles: true }}));
             }}
         }}
-    }}, 100);  // Délai de 100 ms
+    }}, 300);  // Délai de 100 ms
     </script>
     """,
     height=0,
