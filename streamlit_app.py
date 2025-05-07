@@ -37,18 +37,22 @@ cookie_val = st.text_input(
 components.html(
     f"""
     <script>
-    const raw = document.cookie.split('; ').find(r => r.startsWith('{COOKIE}='));
-    if (raw) {{
-        const value = decodeURIComponent(raw.split('=')[1]);
-        const el = document.querySelector('input[data-streamlit-key="{COOKIE}"]');
-        if (el && el.value !== value) {{
-            el.value = value;
-            el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+    setTimeout(() => {{
+        const raw = document.cookie.split('; ').find(r => r.startsWith('{COOKIE}='));
+        if (raw) {{
+            const value = decodeURIComponent(raw.split('=')[1]);
+            const el = document.querySelector('input[data-streamlit-key="{COOKIE}"]');
+            if (el && el.value !== value) {{
+                el.value = value;
+                el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+            }}
         }}
-    }}
-    </script>""",
+    }}, 100);  // Délai de 100 ms
+    </script>
+    """,
     height=0,
 )
+
 
 # ───────── 3. Copier cookie → session_state la toute première fois ───
 if (
