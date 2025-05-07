@@ -5,14 +5,14 @@ import streamlit.components.v1 as components
 
 COOKIE = "simu_lock"
 
-st.title("🔐 Cookie test sur Streamlit Cloud")
+st.title("🔐 Test cookie verrouillé (compatible Streamlit Cloud)")
 
-# Étape 1 : Champ caché pour recevoir la valeur du cookie
+# ─── 1. Champ caché pour recevoir la valeur du cookie ───
 cookie_val = st.text_input(
     "hidden_cookie_field", value="", key=COOKIE, label_visibility="collapsed"
 )
 
-# Étape 2 : JS injecté avec accès au document parent
+# ─── 2. JS pour injecter le cookie dans le champ caché ───
 components.html(
     f"""
     <script>
@@ -22,7 +22,7 @@ components.html(
 
         const value = decodeURIComponent(raw.split('=')[1]);
 
-        // Monte jusqu'au document parent
+        // Monter jusqu’au document racine (iframe → parent)
         let root = window;
         while (root !== root.parent) root = root.parent;
 
@@ -37,11 +37,16 @@ components.html(
     height=0,
 )
 
-# Étape 3 : Si valeur injectée mais non encore traitée → rerun
+# ─── 3. Forcer rerun quand le cookie a été injecté ───
 if st.session_state.get("cookie_processed") is None and cookie_val:
-    st.experimental_rerun()
 
-# Étape 4 : Si valeur disponible → la traiter
+    @st.experimental_singleton
+    def trigger_rerun_once():
+        st.experimental_rerun()
+
+    trigger_rerun_once()
+
+# ─── 4. Traitement de la valeur du cookie une fois injectée ───
 if (
     st.session_state.get("cookie_processed") is None
     and cookie_val
@@ -51,13 +56,13 @@ if (
     st.session_state["parsed_cookie"] = cookie_val
     st.experimental_rerun()
 
-# Affichage
-st.subheader("📦 Cookie lu")
+# ─── 5. Affichage des infos de debug ───
+st.subheader("📦 Cookie injecté")
 st.write("cookie_val seen by Python:", repr(cookie_val))
 st.write("session_state:", st.session_state)
 
 
-# Ajout d’un bouton pour créer un cookie côté client
+# ─── 6. Bouton pour créer un cookie de test côté navigateur ───
 def set_cookie(val: str):
     exp = (datetime.utcnow() + timedelta(days=60)).strftime(
         "%a, %d %b %Y %H:%M:%S GMT"
@@ -74,5 +79,5 @@ def set_cookie(val: str):
     )
 
 
-if st.button("Créer un cookie de test"):
-    set_cookie("123-45-300-JDoe")
+if st.button("📦 Créer un cookie de test"):
+    set_cookie("123-45-300-Danb")
