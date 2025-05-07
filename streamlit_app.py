@@ -21,13 +21,13 @@ cookie_val = st.text_input(
 components.html(
     f"""
     <script>
-    (function() {{
+    setTimeout(() => {{
         const raw = document.cookie.split('; ').find(r => r.startsWith('{COOKIE}='));
         if (!raw) return;
 
         const value = decodeURIComponent(raw.split('=')[1]);
 
-        // Climb to the top-level Streamlit document
+        // IMPORTANT : accéder au document parent pour Streamlit Cloud
         let root = window;
         while (root !== root.parent) root = root.parent;
 
@@ -36,7 +36,7 @@ components.html(
             el.value = value;
             el.dispatchEvent(new Event('input', {{ bubbles: true }}));
         }}
-    }})();
+    }}, 300);  // assez de délai pour que le champ soit monté
     </script>
     """,
     height=0,
