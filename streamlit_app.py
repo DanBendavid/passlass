@@ -1,6 +1,7 @@
 # demo_cookies.py
 
 import os
+
 import streamlit as st
 from streamlit_cookies_manager import EncryptedCookieManager
 
@@ -8,8 +9,8 @@ from streamlit_cookies_manager import EncryptedCookieManager
 st.set_page_config(page_title="Démo Cookies Manager", layout="centered")
 
 COOKIE_PASSWORD = os.environ.get("COOKIES_PASSWORD", "changeme_en_local")
-COOKIE_PREFIX   = "demo_app/"
-COOKIE_NAME     = "user_preference"
+COOKIE_PREFIX = "demo_app/"
+COOKIE_NAME = "user_preference"
 
 # ─── Initialisation ─────────────────────────────────────────────────────────
 cookies = EncryptedCookieManager(
@@ -36,12 +37,12 @@ with col1:
     if st.button("💾 Enregistrer le cookie"):
         cookies[COOKIE_NAME] = new_val
         cookies.save()
-        st.experimental_rerun()
+        st.rerun()
 with col2:
     if st.button("❌ Supprimer le cookie"):
         cookies.pop(COOKIE_NAME, None)
         cookies.save()
-        st.experimental_rerun()
+        st.rerun()
 
 st.markdown("---")
 st.subheader("Debug session_state")
