@@ -185,7 +185,7 @@ def afficher_rho_empirique():
             rho_e, p = pearsonr(df["note m1"], df["note m2"])
             # rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
             st.success(
-                f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}** calculé avec {len(df)} notes. la significativité {p}"
+                f"🔗 Corrélation empirique ρ entre notes PASS et LAS : **{rho_e:.3f}** calculé avec {len(df)} notes. la significativité {p}"
             )
     #        for i, (m1, m2) in enumerate(zip(df["note m1"], df["note m2"])):
     #            st.write(f"Ligne {i+1}: M1 = {m1}, M2 = {m2}")
@@ -196,7 +196,7 @@ def afficher_rho_empirique():
 # ─── 4. UI principale ───────────────────────────────────────────────────────
 st.title("Simulation de classement")
 st.text(
-    "⚠️ Une seule simulation par utilisateur. Les champs seront verrouillés."
+    "⚠️ Une seule simulation par utilisateur. Les champs Rang PASS et LASS seront verrouillés."
 )
 
 # Valeurs verrouillées si présentes dans session_state
