@@ -1,83 +1,61 @@
-from datetime import datetime, timedelta
+# demo_cookies.py
+
+import os
 
 import streamlit as st
-import streamlit.components.v1 as components
+from st_cookies_manager import EncryptedCookieManager
 
-COOKIE = "simu_lock"
+# ─── Config ────────────────────────────────────────────────────────────────
+st.set_page_config(page_title="Démo Cookies Manager", layout="centered")
 
-st.title("🔐 Test cookie verrouillé (compatible Streamlit Cloud)")
+# Récupérez votre mot de passe depuis les Secrets (Créez COOKIES_PASSWORD dans Cloud)
+COOKIE_PASSWORD = os.environ.get("COOKIES_PASSWORD", "changeme_en_local")
 
-# ─── 1. Champ caché pour recevoir la valeur du cookie ───
-cookie_val = st.text_input(
-    "hidden_cookie_field", value="", key=COOKIE, label_visibility="collapsed"
+# Préfixe unique pour éviter les collisions entre apps
+COOKIE_PREFIX = "demo_app/"
+
+# Nom de notre cookie
+COOKIE_NAME = "user_preference"
+
+# ─── Initialisation du gestionnaire ────────────────────────────────────────
+cookies = EncryptedCookieManager(
+    prefix=COOKIE_PREFIX,
+    password=COOKIE_PASSWORD,
 )
 
-# ─── 2. JS pour injecter le cookie dans le champ caché ───
-components.html(
-    f"""
-    <script>
-    setTimeout(() => {{
-        const raw = document.cookie.split('; ').find(r => r.startsWith('{COOKIE}='));
-        if (!raw) return;
+# Le composant JS initialise le store des cookies avant toute lecture/écriture.
+if not cookies.ready():
+    st.write("⌛ Chargement des cookies…")
+    st.stop()
 
-        const value = decodeURIComponent(raw.split('=')[1]);
+# ─── Interface utilisateur ─────────────────────────────────────────────────
+st.title("🔐 Démo st-cookies-manager")
 
-        // Monter jusqu’au document racine (iframe → parent)
-        let root = window;
-        while (root !== root.parent) root = root.parent;
+# Afficher tous les cookies existants
+st.subheader("Cookies actuels")
+st.write(dict(cookies))
 
-        const el = root.document.querySelector('input[data-streamlit-key="{COOKIE}"]');
-        if (el && el.value !== value) {{
-            el.value = value;
-            el.dispatchEvent(new Event('input', {{ bubbles: true }}));
-        }}
-    }}, 300);
-    </script>
-    """,
-    height=0,
-)
+# Lecture d’un cookie spécifique
+current_val = cookies.get(COOKIE_NAME, "non défini")
+st.write(f"Valeur de `{COOKIE_NAME}` : **{current_val}**")
 
-# ─── 3. Forcer rerun quand le cookie a été injecté ───
-if st.session_state.get("cookie_processed") is None and cookie_val:
+# Form pour modifier le cookie
+new_val = st.text_input("Nouvelle valeur pour le cookie", value=current_val)
 
-    @st.experimental_singleton
-    def trigger_rerun_once():
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("💾 Enregistrer le cookie"):
+        cookies[COOKIE_NAME] = new_val
+        cookies.save()  # prend effet au prochain rerun
         st.experimental_rerun()
 
-    trigger_rerun_once()
+with col2:
+    if st.button("❌ Supprimer le cookie"):
+        cookies.pop(COOKIE_NAME, None)
+        cookies.save()
+        st.experimental_rerun()
 
-# ─── 4. Traitement de la valeur du cookie une fois injectée ───
-if (
-    st.session_state.get("cookie_processed") is None
-    and cookie_val
-    and cookie_val.count("-") == 3
-):
-    st.session_state["cookie_processed"] = True
-    st.session_state["parsed_cookie"] = cookie_val
-    st.experimental_rerun()
-
-# ─── 5. Affichage des infos de debug ───
-st.subheader("📦 Cookie injecté")
-st.write("cookie_val seen by Python:", repr(cookie_val))
-st.write("session_state:", st.session_state)
-
-
-# ─── 6. Bouton pour créer un cookie de test côté navigateur ───
-def set_cookie(val: str):
-    exp = (datetime.utcnow() + timedelta(days=60)).strftime(
-        "%a, %d %b %Y %H:%M:%S GMT"
-    )
-    components.html(
-        f"""
-        <script>
-          document.cookie = "{COOKIE}=" + encodeURIComponent("{val}") +
-                            "; expires={exp}; path=/; SameSite=Lax;";
-          alert("✅ Cookie défini : {val}");
-        </script>
-        """,
-        height=0,
-    )
-
-
-if st.button("📦 Créer un cookie de test"):
-    set_cookie("123-45-300-Danb")
+# ─── Debug (facultatif) ────────────────────────────────────────────────────
+st.markdown("---")
+st.subheader("Debug session_state")
+st.write(st.session_state)
