@@ -1,4 +1,3 @@
-# cookie_demo.py
 from datetime import datetime, timedelta
 
 import streamlit as st
@@ -6,18 +5,14 @@ import streamlit.components.v1 as components
 
 COOKIE = "simu_lock"
 
-st.title("🔒 Cookie lock demo")
+st.title("🔐 Cookie test sur Streamlit Cloud")
 
-# ─── ① hidden input that will eventually hold the cookie value ───
+# Étape 1 : Champ caché pour recevoir la valeur du cookie
 cookie_val = st.text_input(
-    "hidden_cookie_field",
-    value="",
-    key=COOKIE,
-    label_visibility="collapsed",
+    "hidden_cookie_field", value="", key=COOKIE, label_visibility="collapsed"
 )
 
-# ─── ② JS → writes cookie value into the hidden input ───
-#  – climbs up to the top document, so it works no matter how many iframes
+# Étape 2 : JS injecté avec accès au document parent
 components.html(
     f"""
     <script>
@@ -27,7 +22,7 @@ components.html(
 
         const value = decodeURIComponent(raw.split('=')[1]);
 
-        // IMPORTANT : accéder au document parent pour Streamlit Cloud
+        // Monte jusqu'au document parent
         let root = window;
         while (root !== root.parent) root = root.parent;
 
@@ -36,44 +31,35 @@ components.html(
             el.value = value;
             el.dispatchEvent(new Event('input', {{ bubbles: true }}));
         }}
-    }}, 300);  // assez de délai pour que le champ soit monté
+    }}, 300);
     </script>
     """,
     height=0,
 )
 
-# ─── ③ FIRST pass: cookie just injected → force a rerun ───
+# Étape 3 : Si valeur injectée mais non encore traitée → rerun
 if st.session_state.get("cookie_processed") is None and cookie_val:
     st.experimental_rerun()
 
-# ─── ④ SECOND pass: we can finally use the value ───
+# Étape 4 : Si valeur disponible → la traiter
 if (
     st.session_state.get("cookie_processed") is None
     and cookie_val
     and cookie_val.count("-") == 3
 ):
-    r1, r2, sz, nom = cookie_val.split("-")
-    st.session_state.update(
-        dict(
-            rank_m1_locked=int(r1),
-            rank_m2_locked=int(r2),
-            size_m2_locked=int(sz),
-            nom_las_locked=nom,
-            cookie_processed=True,
-        )
-    )
+    st.session_state["cookie_processed"] = True
+    st.session_state["parsed_cookie"] = cookie_val
     st.experimental_rerun()
 
-# ─── ⑤ Show what we got ───
-st.write("`cookie_val` seen by Python:", repr(cookie_val))
+# Affichage
+st.subheader("📦 Cookie lu")
+st.write("cookie_val seen by Python:", repr(cookie_val))
 st.write("session_state:", st.session_state)
 
-# ─── Utility to (re)create a 60-day cookie so you can test quickly ───
-from datetime import datetime, timedelta
 
-
+# Ajout d’un bouton pour créer un cookie côté client
 def set_cookie(val: str):
-    exp = (datetime.now() + timedelta(days=60)).strftime(
+    exp = (datetime.utcnow() + timedelta(days=60)).strftime(
         "%a, %d %b %Y %H:%M:%S GMT"
     )
     components.html(
@@ -81,12 +67,12 @@ def set_cookie(val: str):
         <script>
           document.cookie = "{COOKIE}=" + encodeURIComponent("{val}") +
                             "; expires={exp}; path=/; SameSite=Lax;";
-          alert("Cookie set to: " + "{val}");
+          alert("✅ Cookie défini : {val}");
         </script>
         """,
         height=0,
     )
 
 
-if st.button("📦 Créer / remplacer le cookie de test"):
+if st.button("Créer un cookie de test"):
     set_cookie("123-45-300-JDoe")
