@@ -34,6 +34,9 @@ cookie_val = st.text_input(
     label_visibility="collapsed",
 )
 
+if st.session_state.get("cookie_processed") is None and cookie_val:
+    st.experimental_rerun()
+
 components.html(
     f"""
     <script>
