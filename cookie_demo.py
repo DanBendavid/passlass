@@ -73,7 +73,7 @@ from datetime import datetime, timedelta
 
 
 def set_cookie(val: str):
-    exp = (datetime.utcnow() + timedelta(days=60)).strftime(
+    exp = (datetime.now() + timedelta(days=60)).strftime(
         "%a, %d %b %Y %H:%M:%S GMT"
     )
     components.html(
