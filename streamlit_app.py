@@ -325,7 +325,7 @@ if st.button("Lancer la simulation"):
         )
         # Affichage du ρ empirique à la fin de la page
         # Relancer pour prendre en compte le verrouillage
-        st.rerun()
+        # st.rerun()
 
 # Section corrélation empirique en bas
 st.subheader("🔗 Corrélation empirique M1 vs M2")
