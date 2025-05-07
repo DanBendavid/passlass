@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import gspread
 import matplotlib.pyplot as plt
@@ -74,9 +74,9 @@ if (
 
 # ───────── 4. Fonctions utilitaires ──────────
 def set_cookie(val: str):
-    expiration = (
-        datetime.datetime.utcnow() + datetime.timedelta(days=60)
-    ).strftime("%a, %d %b %Y %H:%M:%S GMT")
+    expiration = (datetime.now() + timedelta(days=60)).strftime(
+        "%a, %d %b %Y %H:%M:%S GMT"
+    )
     components.html(
         f"""<script>
                 document.cookie =   "{COOKIE}=" + encodeURIComponent("{val}") + 
