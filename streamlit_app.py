@@ -78,15 +78,119 @@ def convert_rank_to_note_m2(rank_m2, size):
 
 
 def collect_to_google_sheet(
-    nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rang_souhaite
+    nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rank_souhaite
 ):
-    # ... (votre code inchangé pour Google Sheets) ...
-    return True  # ou False si déjà soumis
+    try:
+        sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
+        json_keyfile = dict(st.secrets)
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            json_keyfile, scope
+        )
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(sheet_id).sheet1
+
+        user_hash = generate_user_hash(rank_m1, size_m2)
+        rows = sheet.get_all_values()
+
+        if not rows:
+            header = [
+                "Nom LAS",
+                "Rang M1",
+                "Rang M2",
+                "Taille M2",
+                "Note M1",
+                "Note M2",
+                "Hash",
+                "Rang souhaite",
+                "Timestamp",
+            ]
+            sheet.append_row(header)
+        else:
+            hashes = [row[-1] for row in rows[1:] if len(row) > 6]
+            if user_hash in hashes:
+                st.error(
+                    "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
+                )
+                return False  # ne pas continuer
+        timestamp = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )  # Format du timestamp
+        # Ajouter la ligne avec le hash
+        sheet.append_row(
+            [
+                nom_las,
+                rank_m1,
+                rank_m2,
+                size_m2,
+                note_m1,
+                note_m2,
+                user_hash,
+                rang_souhaite,
+                timestamp,
+            ]
+        )
+        st.success("✅ Partager ce lien avec vos amis.")
+        return True
+    except Exception as e:
+        st.error(f"Erreur : {e}")
 
 
 def afficher_rho_empirique():
-    # ... (votre code inchangé pour corrélation empirique) ...
-    return
+    try:
+        # Authentification Google Sheets
+        sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
+        json_keyfile = dict(st.secrets)
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            json_keyfile, scope
+        )
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(sheet_id).sheet1
+
+        # Lire les données
+        data = sheet.get_all_values()
+        df = pd.DataFrame(data[1:], columns=data[0])
+
+        # Nettoyer les colonnes
+        df.columns = df.columns.str.strip().str.lower()
+
+        # Convertir les notes : remplacer la virgule par un point
+        df["note m1"] = (
+            df["note m1"].str.replace(",", ".", regex=False).astype(float)
+        )
+        df["note m2"] = (
+            df["note m2"].str.replace(",", ".", regex=False).astype(float)
+        )
+
+        # Supprimer les lignes incomplètes
+        df = df.dropna(subset=["note m1", "note m2"])
+
+        if len(df) < 50:
+            st.warning(
+                f"📉 Pas assez de données [Progression : {int(len(df)/50*100)}% ] pour calculer une corrélation fiable. Invitez vos amis."
+            )
+            return False
+        else:
+            # st.subheader("📋 Données utilisées pour le calcul de ρ")
+            #        st.dataframe(df[["note m1", "note m2"]])
+
+            # Corrélation de Pearson
+            rho_e, p = pearsonr(df["note m1"], df["note m2"])
+            # rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
+            st.success(
+                f"🔗 Corrélation empirique ρ entre notes M1 et M2 : **{rho_e:.3f}** calculé avec {len(df)} notes. la significativité {p}"
+            )
+    #        for i, (m1, m2) in enumerate(zip(df["note m1"], df["note m2"])):
+    #            st.write(f"Ligne {i+1}: M1 = {m1}, M2 = {m2}")
+    except Exception as e:
+        st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
 
 
 # ─── 4. UI principale ───────────────────────────────────────────────────────
@@ -166,7 +270,60 @@ if st.button("Lancer la simulation"):
         # → Enregistrement du cookie chiffré
         cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
         cookies.save()
+        p, se = simulate_student_ranking(
+            n_simulations=n,
+            rang_souhaite=rang_souhaite,
+            note_m1_perso=note_m1,
+            note_m2_perso=note_m2,
+            rho=rho,
+            n_workers=n_workers,
+        )
 
+        if show_graph:
+            st.subheader("📉 Probabilité selon le rang souhaité")
+
+            rhos = [0.8, 0.9, 1.0]
+            ranks = list(
+                range(
+                    max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2
+                )
+            )
+            fig, ax = plt.subplots()
+
+            progress_bar = st.progress(0)
+            total_steps = len(rhos) * len(ranks)
+            step = 0
+
+            for r in rhos:
+                pvals = []
+                for target_rank in ranks:
+                    p_y = simulate_student_ranking(
+                        rang_souhaite=target_rank,
+                        rho=r,
+                        n_simulations=1000,
+                        note_m1_perso=note_m1,
+                        note_m2_perso=note_m2,
+                        n_workers=n_workers,
+                    )[0]
+                    pvals.append(p_y)
+
+                    step += 1
+                    progress_bar.progress(step / total_steps)
+
+                ax.plot(ranks, pvals, label=f"ρ = {r}")
+
+            progress_bar.empty()  # Supprime la barre une fois terminé
+
+            ax.set_xlabel("Rang souhaité")
+            ax.set_ylabel("Probabilité")
+            ax.set_title("Probabilité d'atteindre un rang donné")
+            ax.grid(True)
+            ax.legend()
+            st.pyplot(fig)
+        st.success(
+            f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
+        )
+        # Affichage du ρ empirique à la fin de la page
         # Relancer pour prendre en compte le verrouillage
         st.rerun()
 
