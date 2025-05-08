@@ -198,7 +198,7 @@ def afficher_rho_empirique():
 # ─── 4. UI principale ───────────────────────────────────────────────────────
 st.title("Simulation de classement")
 st.text(
-    "⚠️ Une seule simulation par utilisateur. Les champs Rang PASS et LASS seront verrouillés."
+    "⚠️ Une seule simulation par utilisateur. Les champs Rang PASS et LASS seront verrouillés. Vous pouvez changer la correlation entre les 2 années ainsi que le rang estimé."
 )
 
 # Valeurs verrouillées si présentes dans session_state
@@ -330,6 +330,8 @@ if st.button("Lancer la simulation"):
         # st.rerun()
 
 # Section corrélation empirique en bas
-st.subheader("🔗 Corrélation empirique M1 vs M2")
+st.subheader(
+    "🔗 Corrélation empirique en votre rang en Pass et votre rang en LAS2"
+)
 if st.button("Calculer le ρ empirique"):
     afficher_rho_empirique()
