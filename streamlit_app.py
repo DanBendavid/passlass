@@ -208,7 +208,7 @@ size_m2_locked = st.session_state.get("size_m2_locked") or 0
 nom_las_locked = st.session_state.get("nom_las_locked") or ""
 
 rank_m1 = st.number_input(
-    "🎓 Rang PASS (1–1799)",
+    "🎓 Rang PASS 'non coefficienté' (1–1799)",
     min_value=1,
     max_value=1799,
     value=rank_m1_locked or 100,
