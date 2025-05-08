@@ -11,13 +11,15 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
-from scipy.stats import pearsonr
 from streamlit_cookies_manager import EncryptedCookieManager
-
-from simulation import simulate_student_ranking
 
 # ─── Config de la page ──────────────────────────────────────────────────────
 st.set_page_config(page_title="Simulation de classement", layout="centered")
+
+
+from scipy.stats import pearsonr
+
+from simulation import simulate_student_ranking
 
 # ─── Constantes et clés de session ─────────────────────────────────────────
 COOKIE_NAME = "simu_lock"
