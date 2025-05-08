@@ -246,7 +246,9 @@ rang_souhaite = st.number_input(
 )
 
 rho = st.slider("🔗 Corrélation PASS / LAS", 0.7, 1.0, 0.85, step=0.05)
-n = st.number_input("🔁 Nombre de simulations", 100, 20000, 10000, step=1000)
+n = st.number_input(
+    "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
+)
 n_workers = 4
 show_graph = st.checkbox("📈 Afficher graphique", value=True)
 
