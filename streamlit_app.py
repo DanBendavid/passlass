@@ -292,7 +292,7 @@ if st.button("Lancer la simulation"):
     )
 
     if show_graph:
-        st.subheader("📉 Probabilité selon le rang souhaité")
+        st.subheader("📉 Probabilité autour du rang souhaité")
 
         rhos = [rho, 0.7, 1.0]
 
@@ -347,7 +347,7 @@ if st.button("Lancer la simulation"):
         )
     else:
         st.warning(
-            f"📊 Reduire le rang cible, vos chance d'être dans le top {rang_souhaite} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
+            f"📊 Augmenter le rang cible car vos chance d'être dans le top {rang_souhaite} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
         )
     # Affichage du ρ empirique à la fin de la page
     # Relancer pour prendre en compte le verrouillage
