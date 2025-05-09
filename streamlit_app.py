@@ -116,7 +116,7 @@ def collect_to_google_sheet(
                 "Hash",
                 "Rang souhaite",
                 "Timestamp",
-                "Rang 50/50",
+                "Rang 5050",
             ]
             sheet.append_row(header)
         else:
@@ -141,6 +141,7 @@ def collect_to_google_sheet(
                 user_hash,
                 rang_souhaite,
                 timestamp,
+                rank_fifty,
             ]
         )
         st.success("✅ Partager ce lien avec vos amis.")
