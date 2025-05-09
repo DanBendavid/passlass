@@ -334,12 +334,21 @@ if st.button("Lancer la simulation"):
         ax.grid(True)
         ax.legend()
         st.pyplot(fig)
-
-        st.success(f"📊 Rang 50/50 avec ρ = {rho} : {rank_fifty}")
-
-    st.success(
-        f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
-    )
+        if rank_fifty is not None:
+            st.success(f"📊 Rang 50/50 avec ρ = {rho} : {rank_fifty}")
+        else:
+            st.warning(
+                f"📊 Pas de rang 50/50 trouvé avec ρ = {rho} dans la plage de simulation. Augmenter le rang cible"
+            )
+    # Affichage de la probabilité
+    if p > 0.5:
+        st.success(
+            f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
+        )
+    else:
+        st.warning(
+            f"📊 Reduire le rang cible, vos chancesd'être dans le top {rang_souhaite} avec ρ = {rho} est inférieur à 50 % {int(p * 100)}% ± {int(se * 100)}%"
+        )
     # Affichage du ρ empirique à la fin de la page
     # Relancer pour prendre en compte le verrouillage
     # st.rerun()
