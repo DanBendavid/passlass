@@ -263,8 +263,8 @@ show_graph = st.checkbox("📈 Afficher graphique", value=True)
 if st.button("Lancer la simulation"):
     note_m1 = convert_rank_to_note_m1(rank_m1)
     note_m2 = convert_rank_to_note_m2(rank_m2, size_m2)
-    st.write(f"🧮 Note M1 : {note_m1:.2f}")
-    st.write(f"🧮 Note M2 : {note_m2:.2f}")
+    st.write(f"🧮 Note de Rang PASS : {note_m1:.2f}")
+    st.write(f"🧮 Note de Rang LASS : {note_m2:.2f}")
 
     rank_fifty = None
 
@@ -334,9 +334,7 @@ if st.button("Lancer la simulation"):
         ax.legend()
         st.pyplot(fig)
 
-        st.success(
-            f"📊 Probabilité de rang 50/50 avec ρ = {rho} : {rank_fifty}"
-        )
+        st.success(f"📊 Rang 50/50 avec ρ = {rho} : {rank_fifty}")
 
     st.success(
         f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
