@@ -80,7 +80,14 @@ def convert_rank_to_note_m2(rank_m2, size):
 
 
 def collect_to_google_sheet(
-    nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rank_souhaite
+    nom_las,
+    rank_m1,
+    rank_m2,
+    size_m2,
+    note_m1,
+    note_m2,
+    rank_souhaite,
+    rank_fifty,
 ):
     try:
         sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
@@ -109,6 +116,7 @@ def collect_to_google_sheet(
                 "Hash",
                 "Rang souhaite",
                 "Timestamp",
+                "Rang 50/50",
             ]
             sheet.append_row(header)
         else:
@@ -258,79 +266,98 @@ if st.button("Lancer la simulation"):
     st.write(f"🧮 Note M1 : {note_m1:.2f}")
     st.write(f"🧮 Note M2 : {note_m2:.2f}")
 
-    if collect_to_google_sheet(
-        nom_las, rank_m1, rank_m2, size_m2, note_m1, note_m2, rang_souhaite
-    ):
-        # Verrouillage en session
-        st.session_state.update(
-            {
-                "rank_m1_locked": rank_m1,
-                "rank_m2_locked": rank_m2,
-                "size_m2_locked": size_m2,
-                "nom_las_locked": nom_las,
-            }
+    rank_fifty = None
+
+    # Verrouillage en session
+    st.session_state.update(
+        {
+            "rank_m1_locked": rank_m1,
+            "rank_m2_locked": rank_m2,
+            "size_m2_locked": size_m2,
+            "nom_las_locked": nom_las,
+        }
+    )
+
+    # → Enregistrement du cookie chiffré
+    cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
+    cookies.save()
+    p, se = simulate_student_ranking(
+        n_simulations=n,
+        rang_souhaite=rang_souhaite,
+        note_m1_perso=note_m1,
+        note_m2_perso=note_m2,
+        rho=rho,
+        n_workers=n_workers,
+    )
+
+    if show_graph:
+        st.subheader("📉 Probabilité selon le rang souhaité")
+
+        rhos = [rho, 0.7, 1.0]
+
+        ranks = list(
+            range(max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2)
         )
+        fig, ax = plt.subplots()
 
-        # → Enregistrement du cookie chiffré
-        cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
-        cookies.save()
-        p, se = simulate_student_ranking(
-            n_simulations=n,
-            rang_souhaite=rang_souhaite,
-            note_m1_perso=note_m1,
-            note_m2_perso=note_m2,
-            rho=rho,
-            n_workers=n_workers,
-        )
+        progress_bar = st.progress(0)
+        total_steps = len(rhos) * len(ranks)
+        step = 0
 
-        if show_graph:
-            st.subheader("📉 Probabilité selon le rang souhaité")
+        for r in rhos:
+            pvals = []
+            for target_rank in ranks:
+                p_y = simulate_student_ranking(
+                    rang_souhaite=target_rank,
+                    rho=r,
+                    n_simulations=1000,
+                    note_m1_perso=note_m1,
+                    note_m2_perso=note_m2,
+                    n_workers=n_workers,
+                )[0]
+                pvals.append(p_y)
 
-            rhos = [0.8, 0.9, 1.0]
-            ranks = list(
-                range(
-                    max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2
-                )
-            )
-            fig, ax = plt.subplots()
+                if rank_fifty is None and p_y > 0.5:
+                    rank_fifty = target_rank
 
-            progress_bar = st.progress(0)
-            total_steps = len(rhos) * len(ranks)
-            step = 0
+                step += 1
+                progress_bar.progress(step / total_steps)
 
-            for r in rhos:
-                pvals = []
-                for target_rank in ranks:
-                    p_y = simulate_student_ranking(
-                        rang_souhaite=target_rank,
-                        rho=r,
-                        n_simulations=1000,
-                        note_m1_perso=note_m1,
-                        note_m2_perso=note_m2,
-                        n_workers=n_workers,
-                    )[0]
-                    pvals.append(p_y)
+            ax.plot(ranks, pvals, label=f"ρ = {r}")
 
-                    step += 1
-                    progress_bar.progress(step / total_steps)
+        progress_bar.empty()  # Supprime la barre une fois terminé
 
-                ax.plot(ranks, pvals, label=f"ρ = {r}")
+        ax.set_xlabel("Rang souhaité")
+        ax.set_ylabel("Probabilité")
+        ax.set_title("Probabilité d'atteindre un rang donné")
+        ax.grid(True)
+        ax.legend()
+        st.pyplot(fig)
 
-            progress_bar.empty()  # Supprime la barre une fois terminé
-
-            ax.set_xlabel("Rang souhaité")
-            ax.set_ylabel("Probabilité")
-            ax.set_title("Probabilité d'atteindre un rang donné")
-            ax.grid(True)
-            ax.legend()
-            st.pyplot(fig)
         st.success(
-            f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
+            f"📊 Probabilité de rang 50/50 avec ρ = {rho} : {rank_fifty}"
         )
-        # Affichage du ρ empirique à la fin de la page
-        # Relancer pour prendre en compte le verrouillage
-        # st.rerun()
 
+    st.success(
+        f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
+    )
+    # Affichage du ρ empirique à la fin de la page
+    # Relancer pour prendre en compte le verrouillage
+    # st.rerun()
+
+    if collect_to_google_sheet(
+        nom_las,
+        rank_m1,
+        rank_m2,
+        size_m2,
+        note_m1,
+        note_m2,
+        rang_souhaite,
+        rank_fifty,
+    ):
+        st.success(
+            f"Merci. Votre simulation a été enregistrée. Vous pouvez partager le lien avec vos amis."
+        )
 # Section corrélation empirique en bas
 st.subheader(
     "🔗 Corrélation empirique en votre rang en Pass et votre rang en LAS2"
