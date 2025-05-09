@@ -347,7 +347,7 @@ if st.button("Lancer la simulation"):
         )
     else:
         st.warning(
-            f"📊 Reduire le rang cible, vos chancesd'être dans le top {rang_souhaite} avec ρ = {rho} est inférieur à 50 % {int(p * 100)}% ± {int(se * 100)}%"
+            f"📊 Reduire le rang cible, vos chance d'être dans le top {rang_souhaite} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
         )
     # Affichage du ρ empirique à la fin de la page
     # Relancer pour prendre en compte le verrouillage
