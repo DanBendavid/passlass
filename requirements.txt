@@ -8,3 +8,4 @@ matplotlib
 datetime
 scipy
 streamlit-cookies-manager
+streamlit-option-menu
