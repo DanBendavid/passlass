@@ -207,7 +207,7 @@ def afficher_rho_empirique():
 # ─── 4. UI principale ───────────────────────────────────────────────────────
 st.title("Simulation de classement")
 st.text(
-    "⚠️ Une seule simulation par utilisateur. Les champs Rang PASS et LASS seront verrouillés. Vous pouvez changer la correlation entre les 2 années ainsi que le rang estimé."
+    "⚠️ Les champs Rang PASS et LAS seront verrouillés apres votre premiere simulation. Vous pouvez changer la correlation ainsi que le rang estimé."
 )
 
 # Valeurs verrouillées si présentes dans session_state
