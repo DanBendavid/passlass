@@ -290,7 +290,7 @@ elif choix_page == "PASS LAS2":
     rank_m2 = st.number_input(
         "🎓 Rang LAS2",
         min_value=1,
-        max_value=size_m2,
+        max_value=456,
         value=rank_m2_locked or 456,
         disabled=bool(rank_m2_locked),
     )
