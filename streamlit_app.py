@@ -463,64 +463,64 @@ elif choix_page == "LAS1 LAS2":
             n_workers=n_workers,
         )
 
-    if show_graph:
-        st.subheader("📉 Probabilité autour du rang souhaité")
+        if show_graph:
+            st.subheader("📉 Probabilité autour du rang souhaité")
 
-        rhos = [rho, 0.7, 1.0]
+            rhos = [rho, 0.7, 1.0]
 
-        ranks = list(
-            range(max(1, rank_target - 50), min(884, rank_target + 51), 2)
-        )
-        fig, ax = plt.subplots()
+            ranks = list(
+                range(max(1, rank_target - 50), min(884, rank_target + 51), 2)
+            )
+            fig, ax = plt.subplots()
 
-        progress_bar = st.progress(0)
-        total_steps = len(rhos) * len(ranks)
-        step = 0
+            progress_bar = st.progress(0)
+            total_steps = len(rhos) * len(ranks)
+            step = 0
 
-        for r in rhos:
-            pvals = []
-            for target_rank in ranks:
-                p_y = simulate_student_ranking(
-                    rang_souhaite=rank_target,
-                    rho=r,
-                    n_simulations=1000,
-                    note_m1_perso=note_m1,
-                    note_m2_perso=note_m2,
-                    n_workers=n_workers,
-                )[0]
-                pvals.append(p_y)
+            for r in rhos:
+                pvals = []
+                for target_rank in ranks:
+                    p_y = simulate_student_ranking(
+                        rang_souhaite=rank_target,
+                        rho=r,
+                        n_simulations=1000,
+                        note_m1_perso=note_m1,
+                        note_m2_perso=note_m2,
+                        n_workers=n_workers,
+                    )[0]
+                    pvals.append(p_y)
 
-                if rank_fifty is None and p_y > 0.5:
-                    rank_fifty = target_rank
+                    if rank_fifty is None and p_y > 0.5:
+                        rank_fifty = target_rank
 
-                step += 1
-                progress_bar.progress(step / total_steps)
+                    step += 1
+                    progress_bar.progress(step / total_steps)
 
-            ax.plot(ranks, pvals, label=f"ρ = {r}")
+                ax.plot(ranks, pvals, label=f"ρ = {r}")
 
-        progress_bar.empty()  # Supprime la barre une fois terminé
+            progress_bar.empty()  # Supprime la barre une fois terminé
 
-        ax.set_xlabel("Rang souhaité")
-        ax.set_ylabel("Probabilité")
-        ax.set_title("Probabilité d'atteindre un rang donné")
-        ax.grid(True)
-        ax.legend()
-        st.pyplot(fig)
-        if rank_fifty is not None:
-            st.success(f"📊 Rang 50/50 avec ρ = {rho} : {rank_fifty}")
+            ax.set_xlabel("Rang souhaité")
+            ax.set_ylabel("Probabilité")
+            ax.set_title("Probabilité d'atteindre un rang donné")
+            ax.grid(True)
+            ax.legend()
+            st.pyplot(fig)
+            if rank_fifty is not None:
+                st.success(f"📊 Rang 50/50 avec ρ = {rho} : {rank_fifty}")
+            else:
+                st.warning(
+                    f"📊 Pas de rang 50/50 trouvé avec ρ = {rho} dans la plage de simulation. Augmenter le rang cible"
+                )
+        # Affichage de la probabilité
+        if p > 0.5:
+            st.success(
+                f"📊 Probabilité d'être dans le top {rank_target} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
+            )
         else:
             st.warning(
-                f"📊 Pas de rang 50/50 trouvé avec ρ = {rho} dans la plage de simulation. Augmenter le rang cible"
+                f"📊 Augmenter le rang cible car vos chance d'être dans le top {rank_target} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
             )
-    # Affichage de la probabilité
-    if p > 0.5:
-        st.success(
-            f"📊 Probabilité d'être dans le top {rank_target} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
-        )
-    else:
-        st.warning(
-            f"📊 Augmenter le rang cible car vos chance d'être dans le top {rank_target} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
-        )
         if collect_to_google_sheet(
             nom_las,
             rank_m1,
