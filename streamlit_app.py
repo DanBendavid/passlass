@@ -128,9 +128,9 @@ def collect_to_google_sheet(
             )  # On trouve dynamiquement où est “Hash”
             hashes = [row[hash_idx] for row in rows[1:] if len(row) > 6]
             if user_hash in hashes:
-                st.error(
-                    "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
-                )
+                # st.error(
+                #    "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
+                # )
                 return False  # ne pas continuer
         timestamp = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -239,9 +239,9 @@ nom_las = st.text_input(
 )
 
 size_m2 = st.number_input(
-    "👥 Taille LAS2",
+    "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
     min_value=2,
-    value=size_m2_locked or 300,
+    value=size_m2_locked or 456,
     disabled=bool(size_m2_locked),
 )
 
@@ -260,7 +260,7 @@ rang_souhaite = st.number_input(
     value=200,
 )
 
-rho = st.slider("🔗 Corrélation PASS / LAS", 0.7, 1.0, 0.85, step=0.05)
+rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
 n = st.number_input(
     "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
 )
