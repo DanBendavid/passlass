@@ -325,7 +325,7 @@ elif choix_page == "PASS LAS2":
         cookies.save()
         p, se = simulate_student_ranking(
             n_simulations=n,
-            rang_souhaite=rang_souhaite,
+            rang_souhaite=rank_target,
             note_m1_perso=note_m1,
             note_m2_perso=note_m2,
             rho=rho,
@@ -338,9 +338,7 @@ elif choix_page == "PASS LAS2":
             rhos = [rho, 0.7, 1.0]
 
             ranks = list(
-                range(
-                    max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2
-                )
+                range(max(1, rank_target - 50), min(884, rank_target + 51), 2)
             )
             fig, ax = plt.subplots()
 
@@ -352,7 +350,7 @@ elif choix_page == "PASS LAS2":
                 pvals = []
                 for target_rank in ranks:
                     p_y = simulate_student_ranking(
-                        rang_souhaite=target_rank,
+                        rang_souhaite=rank_target,
                         rho=r,
                         n_simulations=1000,
                         note_m1_perso=note_m1,
@@ -386,11 +384,11 @@ elif choix_page == "PASS LAS2":
         # Affichage de la probabilité
         if p > 0.5:
             st.success(
-                f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
+                f"📊 Probabilité d'être dans le top {rank_target} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
             )
         else:
             st.warning(
-                f"📊 Augmenter le rang cible car vos chance d'être dans le top {rang_souhaite} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
+                f"📊 Augmenter le rang cible car vos chance d'être dans le top {rank_target} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
             )
         # Affichage du ρ empirique à la fin de la page
         # Relancer pour prendre en compte le verrouillage
