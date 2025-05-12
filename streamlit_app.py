@@ -40,6 +40,95 @@ with st.sidebar:
 
     # ─── 3. Fonctions utilitaires (identiques à votre code) ──────────────────────
 
+
+def generate_user_hash(rank_m1, size_m2):
+    key = f"{rank_m1}-{size_m2}"
+    return hashlib.sha256(key.encode()).hexdigest()
+
+
+def convert_rank_to_note_m1(rank_m1):
+    return 20.0 * (1.0 - (rank_m1 - 1) / 1798.0)
+
+
+def convert_rank_to_note_m2(rank_m2, size):
+    return 20.0 * (1.0 - (rank_m2 - 1) / (size - 1))
+
+
+def collect_to_google_sheet(
+    nom_las,
+    rank_m1,
+    rank_m2,
+    size_m2,
+    note_m1,
+    note_m2,
+    rank_souhaite,
+    rank_fifty,
+):
+    try:
+        sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
+        json_keyfile = dict(st.secrets)
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            json_keyfile, scope
+        )
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(sheet_id).sheet1
+
+        user_hash = generate_user_hash(rank_m1, size_m2)
+        rows = sheet.get_all_values()
+
+        if not rows:
+            header = [
+                "Nom LAS",
+                "Rang M1",
+                "Rang M2",
+                "Taille M2",
+                "Note M1",
+                "Note M2",
+                "Hash",
+                "Rang souhaite",
+                "Timestamp",
+                "Rang 5050",
+            ]
+            sheet.append_row(header)
+        else:
+            header = rows[0]
+            hash_idx = header.index(
+                "Hash"
+            )  # On trouve dynamiquement où est “Hash”
+            hashes = [row[hash_idx] for row in rows[1:] if len(row) > 6]
+            if user_hash in hashes:
+                # st.error(
+                #    "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
+                # )
+                return False  # ne pas continuer
+        timestamp = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )  # Format du timestamp
+        # Ajouter la ligne avec le hash
+        sheet.append_row(
+            [
+                nom_las,
+                rank_m1,
+                rank_m2,
+                size_m2,
+                note_m1,
+                note_m2,
+                user_hash,
+                rang_souhaite,
+                timestamp,
+                rank_fifty,
+            ]
+        )
+        st.success("✅ Partager ce lien avec vos amis.")
+        return True
+    except Exception as e:
+        st.error(f"Erreur : {e}")
+
+
 # --- Page Accueil -------------------------------------------------------------
 if choix_page == "Accueil":
     st.title("🏠 Bienvenue dans l'application de simulation")
@@ -101,89 +190,6 @@ elif choix_page == "PASS LAS2":
             st.warning("Cookie mal formé ; ignoré.")
 
     # ─── 3. Fonctions utilitaires (unchanged) ───────────────────────────────────
-    def generate_user_hash(rank_m1, size_m2):
-        key = f"{rank_m1}-{size_m2}"
-        return hashlib.sha256(key.encode()).hexdigest()
-
-    def convert_rank_to_note_m1(rank_m1):
-        return 20.0 * (1.0 - (rank_m1 - 1) / 1798.0)
-
-    def convert_rank_to_note_m2(rank_m2, size):
-        return 20.0 * (1.0 - (rank_m2 - 1) / (size - 1))
-
-    def collect_to_google_sheet(
-        nom_las,
-        rank_m1,
-        rank_m2,
-        size_m2,
-        note_m1,
-        note_m2,
-        rank_souhaite,
-        rank_fifty,
-    ):
-        try:
-            sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
-            json_keyfile = dict(st.secrets)
-            scope = [
-                "https://spreadsheets.google.com/feeds",
-                "https://www.googleapis.com/auth/drive",
-            ]
-            creds = ServiceAccountCredentials.from_json_keyfile_dict(
-                json_keyfile, scope
-            )
-            client = gspread.authorize(creds)
-            sheet = client.open_by_key(sheet_id).sheet1
-
-            user_hash = generate_user_hash(rank_m1, size_m2)
-            rows = sheet.get_all_values()
-
-            if not rows:
-                header = [
-                    "Nom LAS",
-                    "Rang M1",
-                    "Rang M2",
-                    "Taille M2",
-                    "Note M1",
-                    "Note M2",
-                    "Hash",
-                    "Rang souhaite",
-                    "Timestamp",
-                    "Rang 5050",
-                ]
-                sheet.append_row(header)
-            else:
-                header = rows[0]
-                hash_idx = header.index(
-                    "Hash"
-                )  # On trouve dynamiquement où est “Hash”
-                hashes = [row[hash_idx] for row in rows[1:] if len(row) > 6]
-                if user_hash in hashes:
-                    # st.error(
-                    #    "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
-                    # )
-                    return False  # ne pas continuer
-            timestamp = datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )  # Format du timestamp
-            # Ajouter la ligne avec le hash
-            sheet.append_row(
-                [
-                    nom_las,
-                    rank_m1,
-                    rank_m2,
-                    size_m2,
-                    note_m1,
-                    note_m2,
-                    user_hash,
-                    rang_souhaite,
-                    timestamp,
-                    rank_fifty,
-                ]
-            )
-            st.success("✅ Partager ce lien avec vos amis.")
-            return True
-        except Exception as e:
-            st.error(f"Erreur : {e}")
 
     def afficher_rho_empirique():
         try:
@@ -412,11 +418,58 @@ elif choix_page == "PASS LAS2":
 # --- Page LAS1 LAS2 ----------------------------------------------------------
 elif choix_page == "LAS1 LAS2":
     st.title("🔄 Simulation LAS1 → LAS2")
-    st.info("À implémenter selon la logique de votre projet.")
+    st.info("Experimental - Tres peu fiable.")
     # placeholder : ajoutez ici vos widgets et votre logique
+
+    note_m1 = st.number_input(
+        "🎓 Note LAS 1 ",
+        min_value=0,
+        max_value=20,
+    )
+
+    rank_m1 = None
+
+    nom_las = st.text_input(
+        "🏫 Nom de votre LAS",
+        max_chars=100,
+    )
+
+    size_m2 = st.number_input(
+        "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
+        min_value=2,
+    )
+
+    rank_m2 = st.number_input(
+        "🎓 Rang LAS2",
+        min_value=1,
+        max_value=300,
+    )
+
+    note_m2 = convert_rank_to_note_m2(rank_m2, size_m2)
+    rank_fifty = None
+    rang_souhaite = st.number_input(
+        "🎯 Rang souhaité ",
+        min_value=1,
+        max_value=884,
+    )
+
+    if st.button("Lancer la simulation"):
+        if collect_to_google_sheet(
+            nom_las,
+            rank_m1,
+            rank_m2,
+            size_m2,
+            note_m1,
+            note_m2,
+            rang_souhaite,
+            rank_fifty,
+        ):
+            st.success(
+                f"Merci. Votre simulation a été enregistrée. Vous pouvez partager le lien avec vos amis."
+            )
 
 # --- Page LAS2 LAS3 ----------------------------------------------------------
 elif choix_page == "LAS2 LAS3":
     st.title("➡️ Simulation LAS2 → LAS3")
-    st.info("À implémenter selon la logique de votre projet.")
+    st.info("Experimental peu fiable.")
     # placeholder : ajoutez ici vos widgets et votre logique
