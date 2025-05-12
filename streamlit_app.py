@@ -14,7 +14,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 from streamlit_cookies_manager import EncryptedCookieManager
 
 # ─── Config de la page ──────────────────────────────────────────────────────
-st.set_page_config(page_title="Simulation de classement", layout="centered")
+st.set_page_config(
+    page_title="Simulation de classement V1.1 (13/05/2025)", layout="centered"
+)
 
 
 from scipy.stats import pearsonr
