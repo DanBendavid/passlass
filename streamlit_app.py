@@ -368,7 +368,7 @@ if st.button("Lancer la simulation"):
         )
 # Section corrélation empirique en bas
 st.subheader(
-    "🔗 Corrélation empirique en votre rang en Pass et votre rang en LAS2"
+    "🔗 Corrélation empirique entre votre rang en Pass et votre rang en LAS2"
 )
 if st.button("Calculer le ρ empirique"):
     afficher_rho_empirique()
