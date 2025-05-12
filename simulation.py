@@ -25,7 +25,7 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-GROUP_SIZES_FULL = np.array([254, 289, 284, 32])
+GROUP_SIZES_FULL = np.array([254, 289, 276, 32])
 GROUP_SIZES: np.ndarray = GROUP_SIZES_FULL.copy()
 GROUP_SIZES[-1] -= 1  # 319
 NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 850
