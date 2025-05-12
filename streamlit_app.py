@@ -39,6 +39,12 @@ with st.sidebar:
     )
 
     # ─── 3. Fonctions utilitaires (identiques à votre code) ──────────────────────
+    rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
+    n = st.number_input(
+        "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
+    )
+    n_workers = 4
+    show_graph = st.checkbox("📈 Afficher graphique", value=True)
 
 
 def generate_user_hash(rank_m1, size_m2):
@@ -134,15 +140,17 @@ if choix_page == "Accueil":
     st.title("🏠 Bienvenue dans l'application de simulation")
     st.markdown(
         """
-        Cette application vous permet de simuler votre classement en LAS2 en 
-        fonction de votre rang PASS et de diverses corrélations.
+        Cette application vous permet de simuler votre classement en LAS 2/LAS3 en 
+        fonction de votre rang PASS ou de votre note LAS 1 ou LAS 2 .
         """
     )
-    st.markdown("Sélectionnez une page dans la barre de navigation à gauche.")
+    st.markdown(
+        "Sélectionnez votre situation dans la barre de navigation à gauche."
+    )
 
 # --- Page PASS LAS2 ----------------------------------------------------------
-elif choix_page == "PASS LAS2":
-    st.title("🧮 Simulation PASS → LAS2")
+elif choix_page == "PASS LAS 2":
+    st.title("🧮 Simulation PASS → LAS 2")
     st.text(
         "Les champs Rang PASS et LAS2 seront verrouillés après la première simulation."
     )
@@ -294,13 +302,6 @@ elif choix_page == "PASS LAS2":
         value=200,
     )
 
-    rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
-    n = st.number_input(
-        "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
-    )
-    n_workers = 4
-    show_graph = st.checkbox("📈 Afficher graphique", value=True)
-
     if st.button("Lancer la simulation"):
         note_m1 = convert_rank_to_note_m1(rank_m1)
         note_m2 = convert_rank_to_note_m2(rank_m2, size_m2)
@@ -418,24 +419,24 @@ elif choix_page == "PASS LAS2":
 # --- Page LAS1 LAS2 ----------------------------------------------------------
 elif choix_page == "LAS1 LAS2":
     st.title("🔄 Simulation LAS1 → LAS2")
-    st.info("Experimental - Tres peu fiable.")
+    st.info("Version 0.5 (13/05/2025) ")
     # placeholder : ajoutez ici vos widgets et votre logique
-
-    note_m1 = st.number_input(
-        "🎓 Note LAS 1 ",
-        min_value=0,
-        max_value=20,
-    )
-
-    rank_m1 = None
 
     nom_las = st.text_input(
         "🏫 Nom de votre LAS",
         max_chars=100,
     )
 
+    note_m1 = st.number_input(
+        "🎓 Note en LAS 1 en année 2023-2034 ",
+        min_value=0,
+        max_value=20,
+    )
+
+    rank_m1 = None
+
     size_m2 = st.number_input(
-        "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
+        "👥 Taille LAS 2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
         min_value=2,
     )
 
@@ -446,6 +447,7 @@ elif choix_page == "LAS1 LAS2":
     )
 
     note_m2 = convert_rank_to_note_m2(rank_m2, size_m2)
+
     rank_fifty = None
     rank_target = st.number_input(
         "🎯 Rang souhaité ",
