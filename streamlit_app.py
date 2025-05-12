@@ -149,7 +149,7 @@ if choix_page == "Accueil":
     )
 
 # --- Page PASS LAS2 ----------------------------------------------------------
-elif choix_page == "PASS LAS 2":
+elif choix_page == "PASS LAS2":
     st.title("🧮 Simulation PASS → LAS 2")
     st.text(
         "Les champs Rang PASS et LAS2 seront verrouillés après la première simulation."
