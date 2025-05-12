@@ -120,7 +120,11 @@ def collect_to_google_sheet(
             ]
             sheet.append_row(header)
         else:
-            hashes = [row[-1] for row in rows[1:] if len(row) > 6]
+            header = rows[0]
+            hash_idx = header.index(
+                "Hash"
+            )  # On trouve dynamiquement où est “Hash”
+            hashes = [row[hash_idx] for row in rows[1:] if len(row) > 6]
             if user_hash in hashes:
                 st.error(
                     "🚫 Une tentative avec un autre classement a déjà été effectué. Envoyer une nouvelle demande de simulation à l'adminstrateur du site "
