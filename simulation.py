@@ -25,10 +25,10 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-GROUP_SIZES_FULL = np.array([254, 280, 316])
+GROUP_SIZES_FULL = np.array([254, 289, 284, 32])
 GROUP_SIZES: np.ndarray = GROUP_SIZES_FULL.copy()
 GROUP_SIZES[-1] -= 1  # 319
-NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 854
+NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 850
 
 GROUP_LABELS: np.ndarray = np.repeat(np.arange(3), GROUP_SIZES)  # 0/1/2
 
@@ -42,7 +42,7 @@ def get_cohort1(seed: int = 42) -> np.ndarray:
     """
     Simule les 3 étapes de sélection et retourne un tableau NumPy
     contenant les rangs initiaux (Step 1) des 850 candidats de la
-    cohorte Step 3, triés par ordre croissant.
+    cohorte triés par ordre croissant.
 
     Paramètres
     ----------
