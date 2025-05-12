@@ -11,52 +11,32 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
-from scipy.stats import pearsonr
 from streamlit_cookies_manager import EncryptedCookieManager
 from streamlit_option_menu import option_menu
 
-from simulation import simulate_student_ranking
-
-# ─── 1. Config de la page ─────────────────────────────────────────────────────
-st.set_page_config(
-    page_title="Simulation de classement V1.1 (13/05/2025)",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-# ─── 2. Barre de navigation ──────────────────────────────────────────────────
 with st.sidebar:
-    choix_page = option_menu(
-        menu_title="Menu principal",
-        options=["Accueil", "PASS LAS2", "LAS1 LAS2", "LAS2 LAS3"],
+    choose = option_menu(
+        "Menu principal",
+        ["Accueil", "PASS LAS2", "LAS1 LAS2", "LAS2 LAS3"],
         icons=["house", "table", "bar-chart", "info-circle"],
         menu_icon="cast",
         default_index=0,
-        styles={
-            "container": {"padding": "5px"},
-            "nav-link-selected": {"background-color": "#f0f0f0"},
-        },
     )
 
-    # ─── 3. Fonctions utilitaires (identiques à votre code) ──────────────────────
+if choose == "Accueil":
 
-# --- Page Accueil -------------------------------------------------------------
-if choix_page == "Accueil":
-    st.title("🏠 Bienvenue dans l'application de simulation")
-    st.markdown(
-        """
-        Cette application vous permet de simuler votre classement en LAS2 en 
-        fonction de votre rang PASS et de diverses corrélations.
-        """
+if choose == "PASS LAS2":    
+        st.write("…")
+    # ─── Config de la page ──────────────────────────────────────────────────────
+    st.set_page_config(
+        page_title="Simulation de classement V1.1 (13/05/2025)", layout="centered"
     )
-    st.markdown("Sélectionnez une page dans la barre de navigation à gauche.")
 
-# --- Page PASS LAS2 ----------------------------------------------------------
-elif choix_page == "PASS LAS2":
-    st.title("🧮 Simulation PASS → LAS2")
-    st.text(
-        "Les champs Rang PASS et LAS2 seront verrouillés après la première simulation."
-    )
+
+    from scipy.stats import pearsonr
+
+    from simulation import simulate_student_ranking
+
     # ─── Constantes et clés de session ─────────────────────────────────────────
     COOKIE_NAME = "simu_lock"
     PREFIX = "demo_app/"
@@ -100,16 +80,20 @@ elif choix_page == "PASS LAS2":
         else:
             st.warning("Cookie mal formé ; ignoré.")
 
+
     # ─── 3. Fonctions utilitaires (unchanged) ───────────────────────────────────
     def generate_user_hash(rank_m1, size_m2):
         key = f"{rank_m1}-{size_m2}"
         return hashlib.sha256(key.encode()).hexdigest()
 
+
     def convert_rank_to_note_m1(rank_m1):
         return 20.0 * (1.0 - (rank_m1 - 1) / 1798.0)
 
+
     def convert_rank_to_note_m2(rank_m2, size):
         return 20.0 * (1.0 - (rank_m2 - 1) / (size - 1))
+
 
     def collect_to_google_sheet(
         nom_las,
@@ -185,6 +169,7 @@ elif choix_page == "PASS LAS2":
         except Exception as e:
             st.error(f"Erreur : {e}")
 
+
     def afficher_rho_empirique():
         try:
             # Authentification Google Sheets
@@ -237,6 +222,7 @@ elif choix_page == "PASS LAS2":
         #            st.write(f"Ligne {i+1}: M1 = {m1}, M2 = {m2}")
         except Exception as e:
             st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
+
 
     # ─── 4. UI principale ───────────────────────────────────────────────────────
     st.title("Simulation de classement")
@@ -331,9 +317,7 @@ elif choix_page == "PASS LAS2":
             rhos = [rho, 0.7, 1.0]
 
             ranks = list(
-                range(
-                    max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2
-                )
+                range(max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2)
             )
             fig, ax = plt.subplots()
 
@@ -408,15 +392,3 @@ elif choix_page == "PASS LAS2":
     )
     if st.button("Calculer le ρ empirique"):
         afficher_rho_empirique()
-
-# --- Page LAS1 LAS2 ----------------------------------------------------------
-elif choix_page == "LAS1 LAS2":
-    st.title("🔄 Simulation LAS1 → LAS2")
-    st.info("À implémenter selon la logique de votre projet.")
-    # placeholder : ajoutez ici vos widgets et votre logique
-
-# --- Page LAS2 LAS3 ----------------------------------------------------------
-elif choix_page == "LAS2 LAS3":
-    st.title("➡️ Simulation LAS2 → LAS3")
-    st.info("À implémenter selon la logique de votre projet.")
-    # placeholder : ajoutez ici vos widgets et votre logique

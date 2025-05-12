@@ -1,0 +1,233 @@
+# streamlit_app.py
+
+import hashlib
+import json
+import os
+from datetime import datetime
+import gspread
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import streamlit as st
+from oauth2client.service_account import ServiceAccountCredentials
+from streamlit_cookies_manager import EncryptedCookieManager
+from streamlit_option_menu import option_menu
+from scipy.stats import pearsonr
+from simulation import simulate_student_ranking
+
+# ─── 1. Config de la page ─────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Simulation de classement V1.1 (13/05/2025)", 
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ─── 2. Barre de navigation ──────────────────────────────────────────────────
+with st.sidebar:
+    choix_page = option_menu(
+        menu_title="Menu principal",
+        options=["Accueil", "PASS LAS2", "LAS1 LAS2", "LAS2 LAS3"],
+        icons=["house", "table", "bar-chart", "info-circle"],
+        menu_icon="cast",
+        default_index=0,
+        styles={
+            "container": {"padding": "5px"},
+            "nav-link-selected": {"background-color": "#f0f0f0"},
+        }
+    )
+
+# ─── 3. Fonctions utilitaires (identiques à votre code) ──────────────────────
+def generate_user_hash(rank_m1, size_m2):
+    key = f"{rank_m1}-{size_m2}"
+    return hashlib.sha256(key.encode()).hexdigest()
+
+def convert_rank_to_note_m1(rank_m1):
+    return 20.0 * (1.0 - (rank_m1 - 1) / 1798.0)
+
+def convert_rank_to_note_m2(rank_m2, size):
+    return 20.0 * (1.0 - (rank_m2 - 1) / (size - 1))
+
+def collect_to_google_sheet(
+    nom_las,
+    rank_m1,
+    rank_m2,
+    size_m2,
+    note_m1,
+    note_m2,
+    rang_souhaite,
+    rank_fifty,
+):
+    # … votre code inchangé …
+    pass  # à remplacer par votre implémentation
+
+def afficher_rho_empirique():
+    # … votre code inchangé …
+    pass  # à remplacer par votre implémentation
+
+# ─── 4. Pages ─────────────────────────────────────────────────────────────────
+
+# --- Page Accueil -------------------------------------------------------------
+if choix_page == "Accueil":
+    st.title("🏠 Bienvenue dans l'application de simulation")
+    st.markdown(
+        """
+        Cette application vous permet de simuler votre classement en LAS2 en 
+        fonction de votre rang PASS et de diverses corrélations.
+        """
+    )
+    st.markdown("Sélectionnez une page dans la barre de navigation à gauche.")
+
+# --- Page PASS LAS2 ----------------------------------------------------------
+elif choix_page == "PASS LAS2":
+    st.title("🧮 Simulation PASS → LAS2")
+    st.text("Les champs Rang PASS et LAS2 seront verrouillés après la première simulation.")
+
+    # Initialisation session et cookies
+    COOKIE_NAME = "simu_lock"
+    PREFIX = "demo_app/"
+    PASSWORD = os.environ.get("COOKIES_PASSWORD", "changeme_en_local")
+
+    # Setup des clés session
+    for k in (
+        "rank_m1_locked",
+        "rank_m2_locked",
+        "size_m2_locked",
+        "nom_las_locked",
+        "cookie_processed",
+    ):
+        st.session_state.setdefault(k, None)
+
+    cookies = EncryptedCookieManager(prefix=PREFIX, password=PASSWORD)
+    if not cookies.ready():
+        st.write("⌛ Initialisation des cookies…")
+        st.stop()
+
+    # Lecture et parsing du cookie
+    cookie_val = cookies.get(COOKIE_NAME, "")
+    if cookie_val and st.session_state.get("cookie_processed") is None:
+        parts = cookie_val.split("-")
+        if len(parts) == 4:
+            try:
+                r1, r2, sz, nom = parts
+                st.session_state.update({
+                    "rank_m1_locked": int(r1),
+                    "rank_m2_locked": int(r2),
+                    "size_m2_locked": int(sz),
+                    "nom_las_locked": nom,
+                    "cookie_processed": True,
+                })
+                st.rerun()
+            except ValueError:
+                st.warning("Cookie mal formé ; ignoré.")
+        else:
+            st.warning("Cookie mal formé ; ignoré.")
+
+    # Inputs utilisateur (verrouillage si déjà saisi)
+    rank_m1 = st.number_input(
+        "🎓 Rang PASS 'non coefficienté' (1–1799)",
+        min_value=1,
+        max_value=1799,
+        value=st.session_state.rank_m1_locked or 100,
+        disabled=bool(st.session_state.rank_m1_locked),
+    )
+    nom_las = st.text_input(
+        "🏫 Nom de votre LAS",
+        value=st.session_state.nom_las_locked or "",
+        disabled=bool(st.session_state.nom_las_locked),
+    )
+    size_m2 = st.number_input(
+        "👥 Taille LAS2",
+        min_value=2,
+        value=st.session_state.size_m2_locked or 456,
+        disabled=bool(st.session_state.size_m2_locked),
+    )
+    rank_m2 = st.number_input(
+        "🎓 Rang LAS2",
+        min_value=1,
+        max_value=300,
+        value=st.session_state.rank_m2_locked or 50,
+        disabled=bool(st.session_state.rank_m2_locked),
+    )
+    rang_souhaite = st.number_input(
+        "🎯 Rang souhaité (sur 884)", min_value=1, max_value=884, value=200
+    )
+    rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
+    n = st.number_input("🔁 Nombre de simulations", 100, 20000, 10000, step=1000)
+    show_graph = st.checkbox("📈 Afficher graphique", value=True)
+
+    if st.button("Lancer la simulation"):
+        note_m1 = convert_rank_to_note_m1(rank_m1)
+        note_m2 = convert_rank_to_note_m2(rank_m2, size_m2)
+        st.write(f"🧮 Note PASS : {note_m1:.2f} – Note LAS2 : {note_m2:.2f}")
+
+        # Verrouillage
+        st.session_state.update({
+            "rank_m1_locked": rank_m1,
+            "rank_m2_locked": rank_m2,
+            "size_m2_locked": size_m2,
+            "nom_las_locked": nom_las,
+        })
+        cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
+        cookies.save()
+
+        # Simulation
+        p, se = simulate_student_ranking(
+            n_simulations=n,
+            rang_souhaite=rang_souhaite,
+            note_m1_perso=note_m1,
+            note_m2_perso=note_m2,
+            rho=rho,
+            n_workers=4,
+        )
+
+        # Graphique
+        if show_graph:
+            st.subheader("📉 Probabilité autour du rang souhaité")
+            fig, ax = plt.subplots()
+            ranks = np.arange(max(1, rang_souhaite-50), min(884, rang_souhaite+51), 2)
+            pvals = [simulate_student_ranking(
+                        rang_souhaite=rr,
+                        rho=rho,
+                        n_simulations=1000,
+                        note_m1_perso=note_m1,
+                        note_m2_perso=note_m2,
+                        n_workers=4,
+                    )[0] for rr in ranks]
+            ax.plot(ranks, pvals, label=f"ρ = {rho}")
+            ax.set_xlabel("Rang souhaité")
+            ax.set_ylabel("Probabilité")
+            ax.set_title("Probabilité d'atteindre un rang donné")
+            ax.grid(True)
+            ax.legend()
+            st.pyplot(fig)
+
+        # Message de résultat
+        if p > 0.5:
+            st.success(f"🔔 Probabilité de top {rang_souhaite} : {int(p*100)}% ± {int(se*100)}%")
+        else:
+            st.warning(f"⚠️ Vos chances sont {int(p*100)}% ± {int(se*100)}% (<50%)")
+
+        # Enregistrement Google Sheet
+        if collect_to_google_sheet(
+            nom_las, rank_m1, rank_m2, size_m2,
+            note_m1, note_m2, rang_souhaite,
+            rank_fifty=None
+        ):
+            st.success("✅ Simulation enregistrée.")
+
+    st.markdown("---")
+    st.subheader("🔗 Corrélation empirique")
+    if st.button("Calculer le ρ empirique"):
+        afficher_rho_empirique()
+
+# --- Page LAS1 LAS2 ----------------------------------------------------------
+elif choix_page == "LAS1 LAS2":
+    st.title("🔄 Simulation LAS1 → LAS2")
+    st.info("À implémenter selon la logique de votre projet.")
+    # placeholder : ajoutez ici vos widgets et votre logique
+
+# --- Page LAS2 LAS3 ----------------------------------------------------------
+elif choix_page == "LAS2 LAS3":
+    st.title("➡️ Simulation LAS2 → LAS3")
+    st.info("À implémenter selon la logique de votre projet.")
+    # placeholder : ajoutez ici vos widgets et votre logique
