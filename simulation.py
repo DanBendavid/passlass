@@ -25,7 +25,7 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-GROUP_SIZES_FULL = np.array([254, 280, 320])
+GROUP_SIZES_FULL = np.array([254, 280, 316])
 GROUP_SIZES: np.ndarray = GROUP_SIZES_FULL.copy()
 GROUP_SIZES[-1] -= 1  # 319
 NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 854
@@ -35,12 +35,58 @@ GROUP_LABELS: np.ndarray = np.repeat(np.arange(3), GROUP_SIZES)  # 0/1/2
 # ---------------------------------------------------------------------------
 # Helper: conversion rank → notes
 # ---------------------------------------------------------------------------
+SEED_COHORT = 42
+
+
+def get_cohort1(seed: int = 42) -> np.ndarray:
+    """
+    Simule les 3 étapes de sélection et retourne un tableau NumPy
+    contenant les rangs initiaux (Step 1) des 850 candidats de la
+    cohorte Step 3, triés par ordre croissant.
+
+    Paramètres
+    ----------
+    seed : int, par défaut 42
+        Graine pour la reproductibilité.
+
+    Renvoie
+    -------
+    np.ndarray
+        Tableau d'entiers (longueur 850) : rangs Step 1 ∈ [201 ; 1300].
+    """
+    rng = np.random.default_rng(seed)
+    N = 1799
+
+    # — Étape 1 : rangs initiaux —
+    scores = rng.random(N)  # scores aléatoires dans [0,1)
+    ranks = scores.argsort()[::-1].argsort() + 1  # 1 = meilleur, 1799 = pire
+
+    # — Étape 2 : sélection pondérée parmi les rangs 201-650 —
+    pool_mask = (ranks >= 201) & (ranks <= 650)  # bool (N,)
+    pool_indices = np.nonzero(pool_mask)[0]  # indices des 450 candidats
+    weights = 651 - ranks[pool_indices]  # poids décroissants
+    probs = weights / weights.sum()  # probabilités normalisées
+    selected2 = rng.choice(pool_indices, size=250, replace=False, p=probs)
+
+    # candidats NON retenus à l’étape 2
+    not_selected2_mask = pool_mask.copy()
+    not_selected2_mask[selected2] = False  # on enlève les 250 tirés
+
+    # — Étape 3 : cohorte « seconde chance » (850 candidats) —
+    second_chance_mask = not_selected2_mask | ((ranks >= 651) & (ranks <= 1300))
+
+    # Tableau des rangs initiaux puis tri croissant
+    cohort_ranks = np.sort(ranks[second_chance_mask])  # shape (850,)
+    return cohort_ranks
+
+
+COHORT1 = get_cohort1(SEED_COHORT)
 
 
 def _m1_from_ranks(ranks: np.ndarray) -> np.ndarray:
     """Convert *global* ranks (1‑based in the full cohort) to M1 marks."""
-    k = 420 + (ranks - 1)
-    return 20.0 * (1.0 - k / 1798.0)
+    k = COHORT1[ranks]
+    return 20.0 * (1.0 - (k - 1) / 1798.0)
 
 
 def _rank_inside_groups(ranks: np.ndarray) -> np.ndarray:
@@ -231,6 +277,7 @@ def simulate_one_cohort(
         pd.DataFrame(
             {
                 "group": GROUP_LABELS,
+                "rank_m1": rank_m1,
                 "rank_m2": rank_m2,
                 "rank_in_group": _rank_inside_groups(rank_m2),
                 "note_m1": _m1_from_ranks(rank_m1),
@@ -252,3 +299,25 @@ def cohort_to_excel(
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_excel(path, index=False)
     return path
+
+
+def n_to_k(n: int, *, seed: int = 42) -> int:
+    """
+    Donne le rang initial k du nième candidat (n) dans la cohorte Step 3.
+
+    Paramètres
+    ----------
+    n : int
+        Index dans la cohorte Step 3 (0 ≤ n ≤ 849).
+    seed : int, optionnel
+        Graine utilisée pour générer la même cohorte.
+
+    Renvoie
+    -------
+    int
+        Rang Step 1 (k) correspondant.
+    """
+    cohort = get_cohort1(seed)  # tableau (850,)
+    if not 0 <= n < cohort.size:
+        raise IndexError(f"n doit être entre 0 et {cohort.size - 1}, reçu {n}")
+    return int(cohort[n])
