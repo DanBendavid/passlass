@@ -61,7 +61,7 @@ def collect_to_google_sheet(
     size_m2,
     note_m1,
     note_m2,
-    rank_souhaite,
+    rank_target,
     rank_fifty,
 ):
     try:
@@ -118,7 +118,7 @@ def collect_to_google_sheet(
                 note_m1,
                 note_m2,
                 user_hash,
-                rang_souhaite,
+                rank_target,
                 timestamp,
                 rank_fifty,
             ]
@@ -287,7 +287,7 @@ elif choix_page == "PASS LAS2":
         disabled=bool(rank_m2_locked),
     )
 
-    rang_souhaite = st.number_input(
+    rank_target = st.number_input(
         "🎯 Rang souhaité (sur 884)",
         min_value=1,
         max_value=884,
@@ -402,7 +402,7 @@ elif choix_page == "PASS LAS2":
             size_m2,
             note_m1,
             note_m2,
-            rang_souhaite,
+            rank_target,
             rank_fifty,
         ):
             st.success(
@@ -447,7 +447,7 @@ elif choix_page == "LAS1 LAS2":
 
     note_m2 = convert_rank_to_note_m2(rank_m2, size_m2)
     rank_fifty = None
-    rang_souhaite = st.number_input(
+    rank_target = st.number_input(
         "🎯 Rang souhaité ",
         min_value=1,
         max_value=884,
@@ -461,7 +461,7 @@ elif choix_page == "LAS1 LAS2":
             size_m2,
             note_m1,
             note_m2,
-            rang_souhaite,
+            rank_target,
             rank_fifty,
         ):
             st.success(
