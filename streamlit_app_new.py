@@ -60,6 +60,60 @@ def convert_rank_to_note_m2(rank_m2, size):
     return 20.0 * (1.0 - (rank_m2 - 1) / (size - 1))
 
 
+def afficher_rho_empirique():
+    try:
+        # Authentification Google Sheets
+        sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
+        json_keyfile = dict(st.secrets)
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(
+            json_keyfile, scope
+        )
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(sheet_id).sheet1
+
+        # Lire les données
+        data = sheet.get_all_values()
+        df = pd.DataFrame(data[1:], columns=data[0])
+
+        # Nettoyer les colonnes
+        df.columns = df.columns.str.strip().str.lower()
+
+        # Convertir les notes : remplacer la virgule par un point
+        df["note m1"] = (
+            df["note m1"].str.replace(",", ".", regex=False).astype(float)
+        )
+        df["note m2"] = (
+            df["note m2"].str.replace(",", ".", regex=False).astype(float)
+        )
+
+        # Supprimer les lignes incomplètes
+        df = df.dropna(subset=["note m1", "note m2"])
+
+        if len(df) < 50:
+            st.warning(
+                f"📉 Pas assez de données [Progression : {int(len(df)/50*100)}% ] pour calculer une corrélation fiable. Invitez vos amis."
+            )
+            return False
+        else:
+            # st.subheader("📋 Données utilisées pour le calcul de ρ")
+            #        st.dataframe(df[["note m1", "note m2"]])
+
+            # Corrélation de Pearson
+            rho_e, p = pearsonr(df["note m1"], df["note m2"])
+            # rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
+            st.success(
+                f"🔗 Corrélation empirique ρ entre notes PASS et LAS : **{rho_e:.3f}** calculé avec {len(df)} notes. la significativité {p}"
+            )
+    #        for i, (m1, m2) in enumerate(zip(df["note m1"], df["note m2"])):
+    #            st.write(f"Ligne {i+1}: M1 = {m1}, M2 = {m2}")
+    except Exception as e:
+        st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
+
+
 def collect_to_google_sheet(
     nom_las,
     rank_m1,
@@ -198,59 +252,6 @@ elif choix_page == "PASS LAS2":
             st.warning("Cookie mal formé ; ignoré.")
 
     # ─── 3. Fonctions utilitaires (unchanged) ───────────────────────────────────
-
-    def afficher_rho_empirique():
-        try:
-            # Authentification Google Sheets
-            sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
-            json_keyfile = dict(st.secrets)
-            scope = [
-                "https://spreadsheets.google.com/feeds",
-                "https://www.googleapis.com/auth/drive",
-            ]
-            creds = ServiceAccountCredentials.from_json_keyfile_dict(
-                json_keyfile, scope
-            )
-            client = gspread.authorize(creds)
-            sheet = client.open_by_key(sheet_id).sheet1
-
-            # Lire les données
-            data = sheet.get_all_values()
-            df = pd.DataFrame(data[1:], columns=data[0])
-
-            # Nettoyer les colonnes
-            df.columns = df.columns.str.strip().str.lower()
-
-            # Convertir les notes : remplacer la virgule par un point
-            df["note m1"] = (
-                df["note m1"].str.replace(",", ".", regex=False).astype(float)
-            )
-            df["note m2"] = (
-                df["note m2"].str.replace(",", ".", regex=False).astype(float)
-            )
-
-            # Supprimer les lignes incomplètes
-            df = df.dropna(subset=["note m1", "note m2"])
-
-            if len(df) < 50:
-                st.warning(
-                    f"📉 Pas assez de données [Progression : {int(len(df)/50*100)}% ] pour calculer une corrélation fiable. Invitez vos amis."
-                )
-                return False
-            else:
-                # st.subheader("📋 Données utilisées pour le calcul de ρ")
-                #        st.dataframe(df[["note m1", "note m2"]])
-
-                # Corrélation de Pearson
-                rho_e, p = pearsonr(df["note m1"], df["note m2"])
-                # rho_e = np.corrcoef(df["note m1"], df["note m2"])[0, 1]
-                st.success(
-                    f"🔗 Corrélation empirique ρ entre notes PASS et LAS : **{rho_e:.3f}** calculé avec {len(df)} notes. la significativité {p}"
-                )
-        #        for i, (m1, m2) in enumerate(zip(df["note m1"], df["note m2"])):
-        #            st.write(f"Ligne {i+1}: M1 = {m1}, M2 = {m2}")
-        except Exception as e:
-            st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
 
     # ─── 4. UI principale ───────────────────────────────────────────────────────
     st.title("Simulation de classement")
@@ -395,7 +396,7 @@ elif choix_page == "PASS LAS2":
         # st.rerun()
 
         if collect_to_google_sheet(
-            "P"+nom_las,
+            "P" + nom_las,
             rank_m1,
             rank_m2,
             size_m2,

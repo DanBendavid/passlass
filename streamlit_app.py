@@ -16,10 +16,11 @@ from streamlit_cookies_manager import EncryptedCookieManager
 from streamlit_option_menu import option_menu
 
 from simulation import simulate_student_ranking
+from plot import graph_student_ranking
 
 # ─── Config de la page ──────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Simulation de classement V1.1 (13/05/2025)", layout="centered"
+    page_title="Simulation de classement V1.1 (13/05/2025) - LAS 2-LAS 3", layout="centered"
 )
 
 
