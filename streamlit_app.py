@@ -63,6 +63,7 @@ def collect_to_google_sheet(
     note_m2,
     rank_souhaite,
     rank_fifty,
+    size_las1=None,
 ):
     try:
         sheet_id = st.secrets["GOOGLE_SHEET_KEY"]
@@ -92,6 +93,7 @@ def collect_to_google_sheet(
                 "Rang souhaite",
                 "Timestamp",
                 "Rang 5050",
+                "Size LAS1",
             ]
             sheet.append_row(header)
         else:
@@ -121,6 +123,7 @@ def collect_to_google_sheet(
                 rang_souhaite,
                 timestamp,
                 rank_fifty,
+                size_las1,
             ]
         )
         st.success("✅ Partager ce lien avec vos amis.")
@@ -264,6 +267,7 @@ elif choix_page == "PASS LAS2":
     rank_m2_locked = st.session_state.get("rank_m2_locked") or 0
     size_m2_locked = st.session_state.get("size_m2_locked") or 0
     nom_las_locked = st.session_state.get("nom_las_locked") or ""
+
     with st.form("pass_las2"):
         rank_m1 = st.number_input(
             "🎓 Rang PASS 'non coefficienté' (1–1799)",
@@ -374,7 +378,7 @@ elif choix_page == "PASS LAS2":
             )
 
         if collect_to_google_sheet(
-            nom_las,
+            choix_page + nom_las,
             rank_m1,
             rank_m2,
             size_m2,
@@ -398,6 +402,138 @@ elif choix_page == "LAS1 LAS2":
     st.title("🔄 Simulation LAS1 → LAS2")
     st.info("Version 0.5 (13/05/2025) ")
     # placeholder : ajoutez ici vos widgets et votre logique
+    with st.form("las1_las2"):
+
+        nom_las = st.text_input(
+            "🏫 Nom de votre LAS",,
+            max_chars=100,,
+        )
+
+        note_las1 = st.number_input(
+            "📝 Note LAS1 (20.0)",
+            min_value=0.0,
+            max_value=20.0,
+            value=10,
+            step=0.01,
+        )
+        rank_las1 = st.number_input(
+            "🎓 Rang LAS1",
+            min_value=1,
+            max_value=300,
+        )
+        size_las1 = st.number_input(
+            "🎓 Taille LAS1",
+            min_value=1,
+            max_value=300,
+        )
+
+        size_m2 = st.number_input(
+            "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
+            min_value=2,
+            value=456,
+        )
+
+        rank_m2 = st.number_input(
+            "🎓 Rang LAS2",
+            min_value=1,
+            max_value=300,
+            value=300,
+        )
+
+        rang_souhaite = st.number_input(
+            "🎯 Rang estimé",
+            min_value=1,
+            max_value=884,
+        )
+
+        rho_pl = st.slider(
+            "🔗 Corrélation LAS 1 / LAS 2", 0.65, 1.0, 0.85, step=0.05
+        )
+
+        n = st.number_input(
+            "🔁 Nombre de simulations (Monte Carlo)",
+            100,
+            20000,
+            10000,
+            step=1000,
+        )
+        n_workers = 1
+
+        show_graph = st.checkbox("📈 Afficher graphique", value=True)
+
+        submitted = st.form_submit_button("Lancer la simulation")
+
+    if submitted:
+        note_m1 = rank_to_note(rank_las1, size_las1)
+        note_m2 = rank_to_note(rank_m2, size_m2)
+        st.write(f"🧮 Note de Rang PASS : {note_m1:.2f}")
+        st.write(f"🧮 Note de Rang LASS : {note_m2:.2f}")
+
+        rank_fifty = None
+
+        # Verrouillage en session
+        st.session_state.update(
+            {
+                "rank_m1_locked": rank_las1,
+                "rank_m2_locked": rank_m2,
+                "size_m2_locked": size_m2,
+                "nom_las_locked": nom_las,
+            }
+        )
+
+        # Simulation
+        p, se = run_simulation(
+            n_simulations=n,
+            rang_souhaite=rang_souhaite,
+            note_m1=note_m1,
+            note_m2=note_m2,
+            rho=rho_pl,
+            n_workers=n_workers,
+        )
+        # Affichage de la probabilité
+        if p > 0.5:
+            st.success(
+                f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho_pl} : {int(p * 100)}% ± {int(se * 100)}%"
+            )
+        else:
+            st.warning(
+                f"📊 Augmenter le rang cible car vos chance d'être dans le top {rang_souhaite} avec ρ = {rho_pl} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
+            )
+
+        # Affichage du graphique
+        if show_graph:
+            st.subheader("📉 Probabilité autour du rang souhaité")
+
+            rank_fifty = graph_student_ranking(
+                rank_target=rang_souhaite,
+                rho=rho_pl,
+                n_simulations=n,
+                note_m1=note_m1,
+                note_m2=note_m2,
+                n_workers=n_workers,
+            )
+
+        if collect_to_google_sheet(
+            choix_page + nom_las,
+            rank_las1,
+            rank_m2,
+            size_m2,
+            note_m1,
+            note_m2,
+            rang_souhaite,
+            rank_fifty,
+            size_las1,
+        ):
+            st.success(
+                f"Merci. Votre simulation a été enregistrée. Vous pouvez partager le lien avec vos amis."
+            )
+    # Section corrélation empirique en bas
+    st.subheader(
+        "🔗 Corrélation empirique entre votre rang en Pass et votre rang en LAS2"
+    )
+    if st.button("Calculer le ρ empirique"):
+        afficher_rho_empirique()
+
 
 # --- Page LAS2 LAS3 ----------------------------------------------------------
 elif choix_page == "LAS2 LAS3":

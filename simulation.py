@@ -35,10 +35,10 @@ GROUP_LABELS: np.ndarray = np.repeat(np.arange(4), GROUP_SIZES)  # 0/1/2/3
 # ---------------------------------------------------------------------------
 # Helper: conversion rank → notes
 # ---------------------------------------------------------------------------
-SEED_COHORT = 42
+SEED_COHORT = 26
 
 
-def get_cohort1(seed: int = 42) -> np.ndarray:
+def get_cohort1(seed: int = 26) -> np.ndarray:
     """
     Simule les 3 étapes de sélection et retourne un tableau NumPy
     contenant les rangs initiaux (Step 1) des 850 candidats de la
