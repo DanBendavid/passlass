@@ -41,6 +41,7 @@ with st.sidebar:
             "nav-link-selected": {"background-color": "#f0f0f0"},
         },
     )
+    st.text("Sciences")
 
     licences_sciences = [
         "Chimie",
@@ -55,7 +56,7 @@ with st.sidebar:
         "STAPS",
     ]
 
-    choix = st.selectbox("Choisissez votre licence :", licences_sciences)
+    license_name = st.selectbox("Choisissez votre licence :", licences_sciences)
 
     st.success(f"Vous avez sélectionné : **{choix}**")
 # ________Fin   de la barre de navigation___________
