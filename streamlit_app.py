@@ -390,6 +390,7 @@ elif choix_page == "PASS LAS2":
             st.success(
                 f"Merci. Votre simulation a été enregistrée. Vous pouvez partager le lien avec vos amis."
             )
+
     # Section corrélation empirique en bas
     st.subheader(
         "🔗 Corrélation empirique entre votre rang en Pass et votre rang en LAS2"
@@ -460,9 +461,11 @@ elif choix_page == "LAS1 LAS2":
 
         show_graph = st.checkbox("📈 Afficher graphique", value=True)
 
-        submitted = st.form_submit_button("Lancer la simulation")
+        submitted_las = st.form_submit_button(
+            "Lancer la simulation LAS1 → LAS2"
+        )
 
-    if submitted:
+    if submitted_las:
         note_m1 = rank_to_note(rank_las1, size_las1)
         note_m2 = rank_to_note(rank_m2, size_m2)
         st.write(f"🧮 Note de Rang PASS : {note_m1:.2f}")
