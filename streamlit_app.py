@@ -338,10 +338,6 @@ elif choix_page == "PASS LAS2":
             }
         )
 
-        # → Enregistrement du cookie chiffré
-        cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
-        cookies.save()
-
         # Simulation
         p, se = run_simulation(
             n_simulations=n,
@@ -360,6 +356,10 @@ elif choix_page == "PASS LAS2":
             st.warning(
                 f"📊 Augmenter le rang cible car vos chance d'être dans le top {rang_souhaite} avec ρ = {rho_pl} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
             )
+
+        # → Enregistrement du cookie chiffré
+        cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
+        cookies.save()
         # Affichage du graphique
         if show_graph:
             st.subheader("📉 Probabilité autour du rang souhaité")
