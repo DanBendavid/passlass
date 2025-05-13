@@ -10,6 +10,7 @@ rank_target = 200
 # Fonction pour tracer le graphique
 
 
+@st.cache_data(show_spinner="📈 Génération du graphique…")
 def graph_student_ranking(
     rank_target, rho, n_simulations, note_m1, note_m2, n_workers
 ):
@@ -27,7 +28,7 @@ def graph_student_ranking(
         pvals = []
         for target_rank in ranks:
             p_y = simulate_student_ranking(
-                rang_souhaite=rank_target,
+                rang_souhaite=target_rank,
                 rho=r,
                 n_simulations=min(2000, n_simulations),
                 note_m1_perso=note_m1,
