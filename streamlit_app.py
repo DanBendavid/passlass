@@ -183,6 +183,20 @@ def afficher_rho_empirique():
         st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
 
 
+@st.cache_data(show_spinner="⏳ Simulation…")
+def run_simulation(
+    n_simulations, rang_souhaite, note_m1, note_m2, rho, n_workers
+):
+    return simulate_student_ranking(
+        n_simulations=n_simulations,
+        rang_souhaite=rang_souhaite,
+        note_m1_perso=note_m1,
+        note_m2_perso=note_m2,
+        rho=rho,
+        n_workers=n_workers,
+    )
+
+
 # --- Page Accueil -------------------------------------------------------------
 if choix_page == "Accueil":
     st.title("🏠 Bienvenue dans l'application de simulation")
@@ -329,11 +343,11 @@ elif choix_page == "PASS LAS2":
         cookies.save()
 
         # Simulation
-        p, se = simulate_student_ranking(
+        p, se = run_simulation(
             n_simulations=n,
             rang_souhaite=rang_souhaite,
-            note_m1_perso=note_m1,
-            note_m2_perso=note_m2,
+            note_m1=note_m1,
+            note_m2=note_m2,
             rho=rho_pl,
             n_workers=n_workers,
         )
