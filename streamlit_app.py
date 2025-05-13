@@ -228,134 +228,154 @@ def afficher_rho_empirique():
         st.error(f"Erreur lors du calcul de la corrélation empirique : {e}")
 
 
-# ─── 4. UI principale ───────────────────────────────────────────────────────
-st.title("Simulation de classement")
-st.text(
-    "⚠️ Les champs Rang PASS et LAS seront verrouillés apres votre premiere simulation. Vous pouvez changer la correlation ainsi que le rang estimé."
-)
-
-# Valeurs verrouillées si présentes dans session_state
-rank_m1_locked = st.session_state.get("rank_m1_locked") or 0
-rank_m2_locked = st.session_state.get("rank_m2_locked") or 0
-size_m2_locked = st.session_state.get("size_m2_locked") or 0
-nom_las_locked = st.session_state.get("nom_las_locked") or ""
-
-rank_m1 = st.number_input(
-    "🎓 Rang PASS 'non coefficienté' (1–1799)",
-    min_value=1,
-    max_value=1799,
-    value=rank_m1_locked or 100,
-    disabled=bool(rank_m1_locked),
-    key="rank_m1_input",
-)
-
-nom_las = st.text_input(
-    "🏫 Nom de votre LAS",
-    value=nom_las_locked,
-    max_chars=100,
-    disabled=bool(nom_las_locked),
-)
-
-size_m2 = st.number_input(
-    "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
-    min_value=2,
-    value=size_m2_locked or 456,
-    disabled=bool(size_m2_locked),
-)
-
-rank_m2 = st.number_input(
-    "🎓 Rang LAS2",
-    min_value=1,
-    max_value=300,
-    value=rank_m2_locked or 50,
-    disabled=bool(rank_m2_locked),
-)
-
-rang_souhaite = st.number_input(
-    "🎯 Rang souhaité (sur 884)",
-    min_value=1,
-    max_value=884,
-    value=200,
-)
-
-rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
-
-n = st.number_input(
-    "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
-)
-n_workers = 4
-
-show_graph = st.checkbox("📈 Afficher graphique", value=True)
-
-if st.button("Lancer la simulation"):
-    note_m1 = rank_to_note(rank_m1, size_pass)
-    note_m2 = rank_to_note(rank_m2, size_m2)
-    st.write(f"🧮 Note de Rang PASS : {note_m1:.2f}")
-    st.write(f"🧮 Note de Rang LASS : {note_m2:.2f}")
-
-    rank_fifty = None
-
-    # Verrouillage en session
-    st.session_state.update(
-        {
-            "rank_m1_locked": rank_m1,
-            "rank_m2_locked": rank_m2,
-            "size_m2_locked": size_m2,
-            "nom_las_locked": nom_las,
-        }
+# --- Page Accueil -------------------------------------------------------------
+if choix_page == "Accueil":
+    st.title("🏠 Bienvenue dans l'application de simulation")
+    st.markdown(
+        """
+        Cette application vous permet de simuler votre classement en LAS 2/LAS3 en 
+        fonction de votre rang PASS ou de votre note LAS 1 ou LAS 2 .
+        """
+    )
+    st.markdown(
+        "Sélectionnez votre situation dans la barre de navigation à gauche."
     )
 
-    # → Enregistrement du cookie chiffré
-    cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
-    cookies.save()
-
-    # Simulation
-    p, se = simulate_student_ranking(
-        n_simulations=n,
-        rang_souhaite=rang_souhaite,
-        note_m1_perso=note_m1,
-        note_m2_perso=note_m2,
-        rho=rho,
-        n_workers=n_workers,
+# --- Page PASS LAS2 ----------------------------------------------------------
+elif choix_page == "PASS LAS2":
+    st.title("🧮 Simulation PASS → LAS 2")
+    st.text(
+        "Les champs Rang PASS et LAS2 seront verrouillés après la première simulation."
     )
-    # Affichage de la probabilité
-    if p > 0.5:
-        st.success(
-            f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
-        )
-    else:
-        st.warning(
-            f"📊 Augmenter le rang cible car vos chance d'être dans le top {rang_souhaite} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
-        )
-    # Affichage du graphique
-    if show_graph:
-        st.subheader("📉 Probabilité autour du rang souhaité")
 
-        rank_fifty = graph_student_ranking(
-            rank_target=rang_souhaite,
-            rho=rho,
+    # ─── 4. UI principale ───────────────────────────────────────────────────────
+    st.title("Simulation de classement")
+    st.text(
+        "⚠️ Les champs Rang PASS et LAS seront verrouillés apres votre premiere simulation. Vous pouvez changer la correlation ainsi que le rang estimé."
+    )
+
+    # Valeurs verrouillées si présentes dans session_state
+    rank_m1_locked = st.session_state.get("rank_m1_locked") or 0
+    rank_m2_locked = st.session_state.get("rank_m2_locked") or 0
+    size_m2_locked = st.session_state.get("size_m2_locked") or 0
+    nom_las_locked = st.session_state.get("nom_las_locked") or ""
+
+    rank_m1 = st.number_input(
+        "🎓 Rang PASS 'non coefficienté' (1–1799)",
+        min_value=1,
+        max_value=1799,
+        value=rank_m1_locked or 100,
+        disabled=bool(rank_m1_locked),
+        key="rank_m1_input",
+    )
+
+    nom_las = st.text_input(
+        "🏫 Nom de votre LAS",
+        value=nom_las_locked,
+        max_chars=100,
+        disabled=bool(nom_las_locked),
+    )
+
+    size_m2 = st.number_input(
+        "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
+        min_value=2,
+        value=size_m2_locked or 456,
+        disabled=bool(size_m2_locked),
+    )
+
+    rank_m2 = st.number_input(
+        "🎓 Rang LAS2",
+        min_value=1,
+        max_value=300,
+        value=rank_m2_locked or 50,
+        disabled=bool(rank_m2_locked),
+    )
+
+    rang_souhaite = st.number_input(
+        "🎯 Rang souhaité (sur 884)",
+        min_value=1,
+        max_value=884,
+        value=200,
+    )
+
+    rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
+
+    n = st.number_input(
+        "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
+    )
+    n_workers = 4
+
+    show_graph = st.checkbox("📈 Afficher graphique", value=True)
+
+    if st.button("Lancer la simulation"):
+        note_m1 = rank_to_note(rank_m1, size_pass)
+        note_m2 = rank_to_note(rank_m2, size_m2)
+        st.write(f"🧮 Note de Rang PASS : {note_m1:.2f}")
+        st.write(f"🧮 Note de Rang LASS : {note_m2:.2f}")
+
+        rank_fifty = None
+
+        # Verrouillage en session
+        st.session_state.update(
+            {
+                "rank_m1_locked": rank_m1,
+                "rank_m2_locked": rank_m2,
+                "size_m2_locked": size_m2,
+                "nom_las_locked": nom_las,
+            }
+        )
+
+        # → Enregistrement du cookie chiffré
+        cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
+        cookies.save()
+
+        # Simulation
+        p, se = simulate_student_ranking(
             n_simulations=n,
-            note_m1=note_m1,
-            note_m2=note_m2,
+            rang_souhaite=rang_souhaite,
+            note_m1_perso=note_m1,
+            note_m2_perso=note_m2,
+            rho=rho,
             n_workers=n_workers,
         )
+        # Affichage de la probabilité
+        if p > 0.5:
+            st.success(
+                f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
+            )
+        else:
+            st.warning(
+                f"📊 Augmenter le rang cible car vos chance d'être dans le top {rang_souhaite} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
+            )
+        # Affichage du graphique
+        if show_graph:
+            st.subheader("📉 Probabilité autour du rang souhaité")
 
-    if collect_to_google_sheet(
-        nom_las,
-        rank_m1,
-        rank_m2,
-        size_m2,
-        note_m1,
-        note_m2,
-        rang_souhaite,
-        rank_fifty,
-    ):
-        st.success(
-            f"Merci. Votre simulation a été enregistrée. Vous pouvez partager le lien avec vos amis."
-        )
-# Section corrélation empirique en bas
-st.subheader(
-    "🔗 Corrélation empirique entre votre rang en Pass et votre rang en LAS2"
-)
-if st.button("Calculer le ρ empirique"):
-    afficher_rho_empirique()
+            rank_fifty = graph_student_ranking(
+                rank_target=rang_souhaite,
+                rho=rho,
+                n_simulations=n,
+                note_m1=note_m1,
+                note_m2=note_m2,
+                n_workers=n_workers,
+            )
+
+        if collect_to_google_sheet(
+            nom_las,
+            rank_m1,
+            rank_m2,
+            size_m2,
+            note_m1,
+            note_m2,
+            rang_souhaite,
+            rank_fifty,
+        ):
+            st.success(
+                f"Merci. Votre simulation a été enregistrée. Vous pouvez partager le lien avec vos amis."
+            )
+    # Section corrélation empirique en bas
+    st.subheader(
+        "🔗 Corrélation empirique entre votre rang en Pass et votre rang en LAS2"
+    )
+    if st.button("Calculer le ρ empirique"):
+        afficher_rho_empirique()
