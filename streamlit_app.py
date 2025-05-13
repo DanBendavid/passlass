@@ -341,11 +341,11 @@ elif choix_page == "PASS LAS2":
         # Affichage de la probabilité
         if p > 0.5:
             st.success(
-                f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho} : {int(p * 100)}% ± {int(se * 100)}%"
+                f"📊 Probabilité d'être dans le top {rang_souhaite} avec ρ = {rho_pl} : {int(p * 100)}% ± {int(se * 100)}%"
             )
         else:
             st.warning(
-                f"📊 Augmenter le rang cible car vos chance d'être dans le top {rang_souhaite} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
+                f"📊 Augmenter le rang cible car vos chance d'être dans le top {rang_souhaite} avec ρ = {rho_pl} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
             )
         # Affichage du graphique
         if show_graph:
