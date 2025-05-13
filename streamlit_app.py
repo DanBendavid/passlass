@@ -242,12 +242,6 @@ elif choix_page == "PASS LAS2":
             st.warning("Cookie mal formé ; ignoré.")
     st.title("🧮 Simulation PASS → LAS 2")
     st.text(
-        "Les champs Rang PASS et LAS2 seront verrouillés après la première simulation."
-    )
-
-    # ─── 4. UI principale ───────────────────────────────────────────────────────
-    st.title("Simulation de classement")
-    st.text(
         "⚠️ Les champs Rang PASS et LAS seront verrouillés apres votre premiere simulation. Vous pouvez changer la correlation ainsi que le rang estimé."
     )
 
@@ -256,55 +250,63 @@ elif choix_page == "PASS LAS2":
     rank_m2_locked = st.session_state.get("rank_m2_locked") or 0
     size_m2_locked = st.session_state.get("size_m2_locked") or 0
     nom_las_locked = st.session_state.get("nom_las_locked") or ""
+    with st.form("pass_las2"):
+        rank_m1 = st.number_input(
+            "🎓 Rang PASS 'non coefficienté' (1–1799)",
+            min_value=1,
+            max_value=1799,
+            value=rank_m1_locked or 100,
+            disabled=bool(rank_m1_locked),
+            key="rank_m1_input",
+        )
 
-    rank_m1 = st.number_input(
-        "🎓 Rang PASS 'non coefficienté' (1–1799)",
-        min_value=1,
-        max_value=1799,
-        value=rank_m1_locked or 100,
-        disabled=bool(rank_m1_locked),
-        key="rank_m1_input",
-    )
+        nom_las = st.text_input(
+            "🏫 Nom de votre LAS",
+            value=nom_las_locked,
+            max_chars=100,
+            disabled=bool(nom_las_locked),
+        )
 
-    nom_las = st.text_input(
-        "🏫 Nom de votre LAS",
-        value=nom_las_locked,
-        max_chars=100,
-        disabled=bool(nom_las_locked),
-    )
+        size_m2 = st.number_input(
+            "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
+            min_value=2,
+            value=size_m2_locked or 456,
+            disabled=bool(size_m2_locked),
+        )
 
-    size_m2 = st.number_input(
-        "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
-        min_value=2,
-        value=size_m2_locked or 456,
-        disabled=bool(size_m2_locked),
-    )
+        rank_m2 = st.number_input(
+            "🎓 Rang LAS2",
+            min_value=1,
+            max_value=300,
+            value=rank_m2_locked or 50,
+            disabled=bool(rank_m2_locked),
+        )
 
-    rank_m2 = st.number_input(
-        "🎓 Rang LAS2",
-        min_value=1,
-        max_value=300,
-        value=rank_m2_locked or 50,
-        disabled=bool(rank_m2_locked),
-    )
+        rang_souhaite = st.number_input(
+            "🎯 Rang souhaité (sur 884)",
+            min_value=1,
+            max_value=884,
+            value=200,
+        )
 
-    rang_souhaite = st.number_input(
-        "🎯 Rang souhaité (sur 884)",
-        min_value=1,
-        max_value=884,
-        value=200,
-    )
+        rho_pl = st.slider(
+            "🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05
+        )
 
-    rho_pl = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
+        n = st.number_input(
+            "🔁 Nombre de simulations (Monte Carlo)",
+            100,
+            20000,
+            10000,
+            step=1000,
+        )
+        n_workers = 1
 
-    n = st.number_input(
-        "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
-    )
-    n_workers = 1
+        show_graph = st.checkbox("📈 Afficher graphique", value=True)
 
-    show_graph = st.checkbox("📈 Afficher graphique", value=True)
+        submitted = st.form_submit_button("Lancer la simulation")
 
-    if st.button("Lancer la simulation"):
+    if submitted:
         note_m1 = rank_to_note(rank_m1, size_pass)
         note_m2 = rank_to_note(rank_m2, size_m2)
         st.write(f"🧮 Note de Rang PASS : {note_m1:.2f}")
@@ -382,7 +384,7 @@ elif choix_page == "LAS1 LAS2":
     st.title("🔄 Simulation LAS1 → LAS2")
     st.info("Version 0.5 (13/05/2025) ")
     # placeholder : ajoutez ici vos widgets et votre logique
-    
+
 # --- Page LAS2 LAS3 ----------------------------------------------------------
 elif choix_page == "LAS2 LAS3":
     st.title("➡️ Simulation LAS2 → LAS3")
