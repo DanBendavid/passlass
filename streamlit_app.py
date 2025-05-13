@@ -405,15 +405,16 @@ elif choix_page == "LAS1 LAS2":
     # placeholder : ajoutez ici vos widgets et votre logique
 
     with st.form("las1_las2"):
+
         nom_las = st.text_input(
             "🏫 Nom de votre LAS",
             max_chars=100,
         )
+
         note_las1 = st.number_input(
             "📝 Note LAS1 (20.0)",
-            min_value=0.0,
-            max_value=20.0,
-            value=10,
+            min_value=0.00,
+            max_value=20.00,
             step=0.01,
         )
         rank_las1 = st.number_input(
