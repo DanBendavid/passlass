@@ -462,7 +462,7 @@ elif choix_page == "LAS1 LAS2":
         size_m2 = st.number_input(
             "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
             min_value=2,
-            value=456,
+            value=st.session_state.get("license_size", 456),
         )
 
         rank_m2 = st.number_input(
