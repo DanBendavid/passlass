@@ -300,7 +300,7 @@ elif choix_page == "PASS LAS2":
     n = st.number_input(
         "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
     )
-    n_workers = 4
+    n_workers = 1
 
     show_graph = st.checkbox("📈 Afficher graphique", value=True)
 
