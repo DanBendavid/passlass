@@ -18,12 +18,42 @@ from streamlit_option_menu import option_menu
 from plot import graph_student_ranking
 from simulation import simulate_student_ranking
 
+size_pass = 1799
+
 # ─── Config de la page ──────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Simulation de classement V1.1 (13/05/2025) - LAS 2-LAS 3",
     layout="centered",
 )
 
+# ─── 1. Config de la page ─────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Simulation de classement V1.1 (13/05/2025)",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# ─── 2. Barre de navigation ──────────────────────────────────────────────────
+with st.sidebar:
+    choix_page = option_menu(
+        menu_title="Menu principal",
+        options=["Accueil", "PASS LAS2", "LAS1 LAS2", "LAS2 LAS3"],
+        icons=["house", "table", "bar-chart", "info-circle"],
+        menu_icon="cast",
+        default_index=0,
+        styles={
+            "container": {"padding": "5px"},
+            "nav-link-selected": {"background-color": "#f0f0f0"},
+        },
+    )
+
+    # ─── 3. Fonctions utilitaires (identiques à votre code) ──────────────────────
+    rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
+    n = st.number_input(
+        "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
+    )
+    n_workers = 4
+    show_graph = st.checkbox("📈 Afficher graphique", value=True)
 
 # ─── Constantes et clés de session ─────────────────────────────────────────
 COOKIE_NAME = "simu_lock"
@@ -75,12 +105,8 @@ def generate_user_hash(rank_m1, size_m2):
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-def convert_rank_to_note_m1(rank_m1):
-    return 20.0 * (1.0 - (rank_m1 - 1) / 1798.0)
-
-
-def convert_rank_to_note_m2(rank_m2, size):
-    return 20.0 * (1.0 - (rank_m2 - 1) / (size - 1))
+def rank_to_note(rank, size):
+    return 20.0 * (1.0 - (rank - 1) / (size - 1))
 
 
 def collect_to_google_sheet(
@@ -263,6 +289,7 @@ rang_souhaite = st.number_input(
 )
 
 rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
+
 n = st.number_input(
     "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
 )
@@ -270,8 +297,8 @@ n_workers = 4
 show_graph = st.checkbox("📈 Afficher graphique", value=True)
 
 if st.button("Lancer la simulation"):
-    note_m1 = convert_rank_to_note_m1(rank_m1)
-    note_m2 = convert_rank_to_note_m2(rank_m2, size_m2)
+    note_m1 = rank_to_note(rank_m1, size_pass)
+    note_m2 = rank_to_note(rank_m2, size_m2)
     st.write(f"🧮 Note de Rang PASS : {note_m1:.2f}")
     st.write(f"🧮 Note de Rang LASS : {note_m2:.2f}")
 
@@ -290,7 +317,7 @@ if st.button("Lancer la simulation"):
     # → Enregistrement du cookie chiffré
     cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
     cookies.save()
-    
+
     # Simulation
     p, se = simulate_student_ranking(
         n_simulations=n,
@@ -320,7 +347,7 @@ if st.button("Lancer la simulation"):
             note_m1=note_m1,
             note_m2=note_m2,
             n_workers=n_workers,
-        )                    
+        )
 
     if collect_to_google_sheet(
         nom_las,
