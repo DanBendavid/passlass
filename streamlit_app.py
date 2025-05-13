@@ -42,48 +42,6 @@ with st.sidebar:
         },
     )
 # ________Fin   de la barre de navigation___________
-# ─── Constantes et clés de session ─────────────────────────────────────────
-COOKIE_NAME = "simu_lock"
-PREFIX = "demo_app/"
-PASSWORD = os.environ.get("COOKIES_PASSWORD", "changeme_en_local")
-
-for k in (
-    "rank_m1_locked",
-    "rank_m2_locked",
-    "size_m2_locked",
-    "nom_las_locked",
-    "cookie_processed",
-):
-    st.session_state.setdefault(k, None)
-
-# ─── 1. Initialisation du gestionnaire de cookies ─────────────────────────
-cookies = EncryptedCookieManager(prefix=PREFIX, password=PASSWORD)
-if not cookies.ready():
-    st.write("⌛ Initialisation des cookies…")
-    st.stop()
-
-# ─── 2. Lecture du cookie existant ─────────────────────────────────────────
-cookie_val = cookies.get(COOKIE_NAME, "")
-if cookie_val and st.session_state.get("cookie_processed") is None:
-    # On ne fait le parsing qu'une seule fois
-    parts = cookie_val.split("-")
-    if len(parts) == 4:
-        try:
-            r1, r2, sz, nom = parts
-            st.session_state.update(
-                {
-                    "rank_m1_locked": int(r1),
-                    "rank_m2_locked": int(r2),
-                    "size_m2_locked": int(sz),
-                    "nom_las_locked": nom,
-                    "cookie_processed": True,
-                }
-            )
-            st.rerun()
-        except ValueError:
-            st.warning("Cookie mal formé ; ignoré.")
-    else:
-        st.warning("Cookie mal formé ; ignoré.")
 
 
 # ─── 3. Fonctions utilitaires (unchanged) ───────────────────────────────────
@@ -240,6 +198,48 @@ if choix_page == "Accueil":
 
 # --- Page PASS LAS2 ----------------------------------------------------------
 elif choix_page == "PASS LAS2":
+    # ─── Constantes et clés de session ─────────────────────────────────────────
+    COOKIE_NAME = "simu_lock"
+    PREFIX = "demo_app/"
+    PASSWORD = os.environ.get("COOKIES_PASSWORD", "changeme_en_local")
+
+    for k in (
+        "rank_m1_locked",
+        "rank_m2_locked",
+        "size_m2_locked",
+        "nom_las_locked",
+        "cookie_processed",
+    ):
+        st.session_state.setdefault(k, None)
+
+    # ─── 1. Initialisation du gestionnaire de cookies ─────────────────────────
+    cookies = EncryptedCookieManager(prefix=PREFIX, password=PASSWORD)
+    if not cookies.ready():
+        st.write("⌛ Initialisation des cookies…")
+        st.stop()
+
+    # ─── 2. Lecture du cookie existant ─────────────────────────────────────────
+    cookie_val = cookies.get(COOKIE_NAME, "")
+    if cookie_val and st.session_state.get("cookie_processed") is None:
+        # On ne fait le parsing qu'une seule fois
+        parts = cookie_val.split("-")
+        if len(parts) == 4:
+            try:
+                r1, r2, sz, nom = parts
+                st.session_state.update(
+                    {
+                        "rank_m1_locked": int(r1),
+                        "rank_m2_locked": int(r2),
+                        "size_m2_locked": int(sz),
+                        "nom_las_locked": nom,
+                        "cookie_processed": True,
+                    }
+                )
+                st.rerun()
+            except ValueError:
+                st.warning("Cookie mal formé ; ignoré.")
+        else:
+            st.warning("Cookie mal formé ; ignoré.")
     st.title("🧮 Simulation PASS → LAS 2")
     st.text(
         "Les champs Rang PASS et LAS2 seront verrouillés après la première simulation."
