@@ -290,6 +290,8 @@ if st.button("Lancer la simulation"):
     # → Enregistrement du cookie chiffré
     cookies[COOKIE_NAME] = f"{rank_m1}-{rank_m2}-{size_m2}-{nom_las}"
     cookies.save()
+    
+    # Simulation
     p, se = simulate_student_ranking(
         n_simulations=n,
         rang_souhaite=rang_souhaite,
@@ -298,56 +300,6 @@ if st.button("Lancer la simulation"):
         rho=rho,
         n_workers=n_workers,
     )
-
-    if show_graph:
-        st.subheader("📉 Probabilité autour du rang souhaité")
-
-        rhos = [rho, 0.7, 1.0]
-
-        ranks = list(
-            range(max(1, rang_souhaite - 50), min(884, rang_souhaite + 51), 2)
-        )
-        fig, ax = plt.subplots()
-
-        progress_bar = st.progress(0)
-        total_steps = len(rhos) * len(ranks)
-        step = 0
-
-        for r in rhos:
-            pvals = []
-            for target_rank in ranks:
-                p_y = simulate_student_ranking(
-                    rang_souhaite=target_rank,
-                    rho=r,
-                    n_simulations=1000,
-                    note_m1_perso=note_m1,
-                    note_m2_perso=note_m2,
-                    n_workers=n_workers,
-                )[0]
-                pvals.append(p_y)
-
-                if rank_fifty is None and p_y > 0.5:
-                    rank_fifty = target_rank
-
-                step += 1
-                progress_bar.progress(step / total_steps)
-
-            ax.plot(ranks, pvals, label=f"ρ = {r}")
-
-        progress_bar.empty()  # Supprime la barre une fois terminé
-
-        ax.set_xlabel("Rang ")
-        ax.set_ylabel("P")
-        ax.set_title("P(x = rang) ")
-        ax.grid(True)
-        ax.legend()
-        st.pyplot(fig)
-        if rank_fifty is not None:
-            st.success(f"📊 Rang 50/50 avec ρ = {rho} : {rank_fifty}")
-        else:
-            st.warning(
-                f"📊 Pas de rang 50/50 trouvé avec ρ = {rho} dans la plage de simulation. Augmenter le rang cible"
-            )
     # Affichage de la probabilité
     if p > 0.5:
         st.success(
@@ -357,9 +309,18 @@ if st.button("Lancer la simulation"):
         st.warning(
             f"📊 Augmenter le rang cible car vos chance d'être dans le top {rang_souhaite} avec ρ = {rho} sont inférieures à 50% [p ={int(p * 100)}% ± {int(se * 100)}%]"
         )
-    # Affichage du ρ empirique à la fin de la page
-    # Relancer pour prendre en compte le verrouillage
-    # st.rerun()
+    # Affichage du graphique
+    if show_graph:
+        st.subheader("📉 Probabilité autour du rang souhaité")
+
+        rank_fifty = graph_student_ranking(
+            rank_target=rang_souhaite,
+            rho=rho,
+            n_simulations=n,
+            note_m1=note_m1,
+            note_m2=note_m2,
+            n_workers=n_workers,
+        )                    
 
     if collect_to_google_sheet(
         nom_las,
