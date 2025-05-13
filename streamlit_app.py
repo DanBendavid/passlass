@@ -224,9 +224,21 @@ if choix_page == "Accueil":
         "SIAS",
         "STAPS",
     ]
+    licences_sciences_size = [
+        30,
+        30,
+        32,
+        30,
+        30,
+        289,
+        30,
+        30,
+        254,
+        30,
+    ]
 
     license_name = st.selectbox("Choisissez votre licence :", licences_sciences)
-
+    st.session_state["license_name"] = license_name
     st.success(f"Vous avez sélectionné : **{license_name}**")
     st.markdown(
         "Sélectionnez votre situation dans la barre de navigation à gauche."
@@ -285,7 +297,9 @@ elif choix_page == "PASS LAS2":
     rank_m1_locked = st.session_state.get("rank_m1_locked") or 0
     rank_m2_locked = st.session_state.get("rank_m2_locked") or 0
     size_m2_locked = st.session_state.get("size_m2_locked") or 0
-    nom_las_locked = st.session_state.get("nom_las_locked") or ""
+    nom_las_locked = st.session_state.get(
+        "nom_las_locked"
+    ) or st.session_state.get("license_name", "")
 
     with st.form("pass_las2"):
         rank_m1 = st.number_input(
@@ -428,6 +442,7 @@ elif choix_page == "LAS1 LAS2":
         nom_las = st.text_input(
             "🏫 Nom de votre LAS",
             max_chars=100,
+            value=st.session_state.get("license_name", ""),
         )
 
         note_las1 = st.number_input(
