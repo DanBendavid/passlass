@@ -298,7 +298,7 @@ elif choix_page == "PASS LAS2":
         value=200,
     )
 
-    rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
+    rho_pl = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
 
     n = st.number_input(
         "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
@@ -335,7 +335,7 @@ elif choix_page == "PASS LAS2":
             rang_souhaite=rang_souhaite,
             note_m1_perso=note_m1,
             note_m2_perso=note_m2,
-            rho=rho,
+            rho=rho_pl,
             n_workers=n_workers,
         )
         # Affichage de la probabilité
@@ -353,7 +353,7 @@ elif choix_page == "PASS LAS2":
 
             rank_fifty = graph_student_ranking(
                 rank_target=rang_souhaite,
-                rho=rho,
+                rho=rho_pl,
                 n_simulations=n,
                 note_m1=note_m1,
                 note_m2=note_m2,
