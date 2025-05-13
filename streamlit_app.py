@@ -298,8 +298,8 @@ elif choix_page == "PASS LAS2":
     rank_m2_locked = st.session_state.get("rank_m2_locked") or 0
     size_m2_locked = st.session_state.get("size_m2_locked") or 0
     nom_las_locked = st.session_state.get(
-        "nom_las_locked"
-    ) or st.session_state.get("license_name", "")
+        "license_name", ""
+    ) or st.session_state.get("nom_las_locked")
 
     with st.form("pass_las2"):
         rank_m1 = st.number_input(
