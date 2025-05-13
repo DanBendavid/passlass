@@ -402,13 +402,12 @@ elif choix_page == "LAS1 LAS2":
     st.title("🔄 Simulation LAS1 → LAS2")
     st.info("Version 0.5 (13/05/2025) ")
     # placeholder : ajoutez ici vos widgets et votre logique
+    
     with st.form("las1_las2"):
-
         nom_las = st.text_input(
             "🏫 Nom de votre LAS",,
             max_chars=100,,
         )
-
         note_las1 = st.number_input(
             "📝 Note LAS1 (20.0)",
             min_value=0.0,
