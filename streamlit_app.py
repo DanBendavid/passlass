@@ -41,10 +41,7 @@ with st.sidebar:
             "nav-link-selected": {"background-color": "#f0f0f0"},
         },
     )
-
-    # ─── 3. Fonctions utilitaires (identiques à votre code) ──────────────────────
-
-
+# ________Fin   de la barre de navigation___________
 # ─── Constantes et clés de session ─────────────────────────────────────────
 COOKIE_NAME = "simu_lock"
 PREFIX = "demo_app/"
