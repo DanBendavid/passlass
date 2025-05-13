@@ -41,24 +41,6 @@ with st.sidebar:
             "nav-link-selected": {"background-color": "#f0f0f0"},
         },
     )
-    st.text("Sciences")
-
-    licences_sciences = [
-        "Chimie",
-        "Maths et applications",
-        "MEDPHY",
-        "MIASHS",
-        "Physique",
-        "Sciences Biomédicales",
-        "Sciences de la Vie",
-        "Sciences de la Vie de la Terre (IPGP)",
-        "SIAS",
-        "STAPS",
-    ]
-
-    license_name = st.selectbox("Choisissez votre licence :", licences_sciences)
-
-    st.success(f"Vous avez sélectionné : **{choix}**")
 # ________Fin   de la barre de navigation___________
 
 
@@ -227,6 +209,25 @@ if choix_page == "Accueil":
         fonction de votre rang PASS ou de votre note LAS 1 ou LAS 2 .
         """
     )
+
+    st.text("Seules les LAS Sciences sont disponibles pour le moment.")
+
+    licences_sciences = [
+        "Chimie",
+        "Maths et applications",
+        "MEDPHY",
+        "MIASHS",
+        "Physique",
+        "Sciences Biomédicales",
+        "Sciences de la Vie",
+        "Sciences de la Vie de la Terre (IPGP)",
+        "SIAS",
+        "STAPS",
+    ]
+
+    license_name = st.selectbox("Choisissez votre licence :", licences_sciences)
+
+    st.success(f"Vous avez sélectionné : **{licences_sciences}**")
     st.markdown(
         "Sélectionnez votre situation dans la barre de navigation à gauche."
     )
