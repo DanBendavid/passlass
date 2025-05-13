@@ -227,7 +227,7 @@ if choix_page == "Accueil":
 
     license_name = st.selectbox("Choisissez votre licence :", licences_sciences)
 
-    st.success(f"Vous avez sélectionné : **{licences_sciences}**")
+    st.success(f"Vous avez sélectionné : **{license_name}**")
     st.markdown(
         "Sélectionnez votre situation dans la barre de navigation à gauche."
     )
