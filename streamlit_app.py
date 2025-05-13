@@ -284,6 +284,7 @@ n = st.number_input(
     "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
 )
 n_workers = 4
+
 show_graph = st.checkbox("📈 Afficher graphique", value=True)
 
 if st.button("Lancer la simulation"):
