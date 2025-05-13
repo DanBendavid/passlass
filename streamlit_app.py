@@ -224,21 +224,15 @@ if choix_page == "Accueil":
         "SIAS",
         "STAPS",
     ]
-    licences_sciences_size = [
-        30,
-        30,
-        32,
-        30,
-        30,
-        289,
-        30,
-        30,
-        254,
-        30,
-    ]
+    licences_sciences_size = [30, 31, 32, 33, 34, 289, 35, 36, 254, 37]
+    licences_dict = dict(zip(licences_sciences, licences_sciences_size))
 
     license_name = st.selectbox("Choisissez votre licence :", licences_sciences)
+
+    license_size = licences_dict[license_name]
     st.session_state["license_name"] = license_name
+    st.session_state["license_size"] = license_size
+
     st.success(f"Vous avez sélectionné : **{license_name}**")
     st.markdown(
         "Sélectionnez votre situation dans la barre de navigation à gauche."
@@ -296,7 +290,11 @@ elif choix_page == "PASS LAS2":
     # Valeurs verrouillées si présentes dans session_state
     rank_m1_locked = st.session_state.get("rank_m1_locked") or 0
     rank_m2_locked = st.session_state.get("rank_m2_locked") or 0
-    size_m2_locked = st.session_state.get("size_m2_locked") or 0
+    size_m2_locked = (
+        st.session_state.get("license_size", "")
+        or st.session_state.get("size_m2_locked")
+        or 0
+    )
     nom_las_locked = st.session_state.get(
         "license_name", ""
     ) or st.session_state.get("nom_las_locked")
@@ -322,7 +320,6 @@ elif choix_page == "PASS LAS2":
             "👥 Taille LAS2 (Attention, l'effetif de votre LAS doit etre saisi précisement)",
             min_value=2,
             value=size_m2_locked or 456,
-            disabled=bool(size_m2_locked),
         )
 
         rank_m2 = st.number_input(
