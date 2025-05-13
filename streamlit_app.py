@@ -237,7 +237,16 @@ if choix_page == "Accueil":
     st.markdown(
         "Sélectionnez votre situation dans la barre de navigation à gauche."
     )
-
+    st.markdown(
+        """
+    <div style='border: 1px solid #f1c40f; padding: 10px; border-radius: 5px; background-color: #fcf8e3; color: #8a6d3b;'>
+    ⚠️ <strong>Disclaimer :</strong><br>
+    Les données présentées dans cette application sont fournies à titre informatif et ne sauraient engager la responsabilité de l’auteur.<br>
+    Pour des informations officielles, veuillez consulter les sites des universités concernées.
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
 # --- Page PASS LAS2 ----------------------------------------------------------
 elif choix_page == "PASS LAS2":
     # ─── Constantes et clés de session ─────────────────────────────────────────
