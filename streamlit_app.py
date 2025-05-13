@@ -41,6 +41,23 @@ with st.sidebar:
             "nav-link-selected": {"background-color": "#f0f0f0"},
         },
     )
+
+    licences_sciences = [
+        "Chimie",
+        "Maths et applications",
+        "MEDPHY",
+        "MIASHS",
+        "Physique",
+        "Sciences Biomédicales",
+        "Sciences de la Vie",
+        "Sciences de la Vie de la Terre (IPGP)",
+        "SIAS",
+        "STAPS",
+    ]
+
+    choix = st.selectbox("Choisissez votre licence :", licences_sciences)
+
+    st.success(f"Vous avez sélectionné : **{choix}**")
 # ________Fin   de la barre de navigation___________
 
 
