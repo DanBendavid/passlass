@@ -283,13 +283,6 @@ rang_souhaite = st.number_input(
     value=200,
 )
 
-rho = st.slider("🔗 Corrélation PASS / LAS", 0.65, 1.0, 0.85, step=0.05)
-
-n = st.number_input(
-    "🔁 Nombre de simulations (Monte Carlo)", 100, 20000, 10000, step=1000
-)
-n_workers = 4
-show_graph = st.checkbox("📈 Afficher graphique", value=True)
 
 if st.button("Lancer la simulation"):
     note_m1 = rank_to_note(rank_m1, size_pass)
