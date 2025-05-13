@@ -29,10 +29,10 @@ def graph_student_ranking(
             p_y = simulate_student_ranking(
                 rang_souhaite=rank_target,
                 rho=r,
-                n_simulations = min(n_simulations, 2000)
-                note_m1_perso = note_m1,
-                note_m2_perso = note_m2,
-                n_workers = n_workers,
+                n_simulations=min(2000, n_simulations),
+                note_m1_perso=note_m1,
+                note_m2_perso=note_m2,
+                n_workers=n_workers,
             )[0]
             pvals.append(p_y)
 
