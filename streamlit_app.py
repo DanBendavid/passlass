@@ -15,12 +15,13 @@ from scipy.stats import pearsonr
 from streamlit_cookies_manager import EncryptedCookieManager
 from streamlit_option_menu import option_menu
 
-from simulation import simulate_student_ranking
 from plot import graph_student_ranking
+from simulation import simulate_student_ranking
 
 # ─── Config de la page ──────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Simulation de classement V1.1 (13/05/2025) - LAS 2-LAS 3", layout="centered"
+    page_title="Simulation de classement V1.1 (13/05/2025) - LAS 2-LAS 3",
+    layout="centered",
 )
 
 
@@ -335,9 +336,9 @@ if st.button("Lancer la simulation"):
 
         progress_bar.empty()  # Supprime la barre une fois terminé
 
-        ax.set_xlabel("Rang souhaité")
-        ax.set_ylabel("Probabilité")
-        ax.set_title("Probabilité d'atteindre un rang donné")
+        ax.set_xlabel("Rang ")
+        ax.set_ylabel("P")
+        ax.set_title("P(x = rang) ")
         ax.grid(True)
         ax.legend()
         st.pyplot(fig)
