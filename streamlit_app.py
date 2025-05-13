@@ -376,3 +376,14 @@ elif choix_page == "PASS LAS2":
     )
     if st.button("Calculer le ρ empirique"):
         afficher_rho_empirique()
+
+# --- Page LAS1 LAS2 ----------------------------------------------------------
+elif choix_page == "LAS1 LAS2":
+    st.title("🔄 Simulation LAS1 → LAS2")
+    st.info("Version 0.5 (13/05/2025) ")
+    # placeholder : ajoutez ici vos widgets et votre logique
+    
+# --- Page LAS2 LAS3 ----------------------------------------------------------
+elif choix_page == "LAS2 LAS3":
+    st.title("➡️ Simulation LAS2 → LAS3")
+    st.info("Experimental Version (13.05.2025).")
