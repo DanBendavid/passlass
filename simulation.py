@@ -30,7 +30,7 @@ GROUP_SIZES: np.ndarray = GROUP_SIZES_FULL.copy()
 GROUP_SIZES[-1] -= 1  # 319
 NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 850
 
-GROUP_LABELS: np.ndarray = np.repeat(np.arange(4), GROUP_SIZES)  # 0/1/2/3
+GROUP_LABELS: np.ndarray = np.repeat(np.arange(10), GROUP_SIZES)  # 0/1/2/3
 
 # ---------------------------------------------------------------------------
 # Helper: conversion rank → notes
