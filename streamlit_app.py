@@ -23,7 +23,7 @@ size_pass = 1799
 
 # ─── 1. Config de la page ─────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Simulation de classement V1.1 (13/05/2025)",
+    page_title="Simulation de classement V1.2 (20/05/2025)",
     layout="centered",
     initial_sidebar_state="expanded",
 )
@@ -213,16 +213,16 @@ if choix_page == "Accueil":
     st.text("Seules les LAS Sciences sont disponibles pour le moment.")
 
     licences_sciences = [
-        "Chimie",
-        "Maths et applications",
-        "MEDPHY",
-        "MIASHS",
-        "Physique",
-        "Sciences Biomédicales",
-        "Sciences de la Vie",
-        "Sciences de la Vie de la Terre (IPGP)",
-        "SIAS",
-        "STAPS",
+        "Chimie",  # 30 HYP
+        "Maths et applications",  # 31 HYP
+        "MEDPHY",  # 32 OK
+        "MIASHS",  # 33 HYP
+        "Physique",  # 34 HYP
+        "Sciences Biomédicales",  # 289 OK
+        "Sciences de la Vie",  # 35 HYP
+        "Sciences de la Vie de la Terre (IPGP)",  # 36 HYP
+        "SIAS",  # 254 OK
+        "STAPS",  # 37 HYP
     ]
     licences_sciences_size = [30, 31, 32, 33, 34, 289, 35, 36, 254, 37]
     licences_dict = dict(zip(licences_sciences, licences_sciences_size))

@@ -25,7 +25,7 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-GROUP_SIZES_FULL = np.array([254, 289, 275, 32])
+GROUP_SIZES_FULL = np.array([254, 289, 30, 31, 32, 33, 34, 35, 36, 37])
 GROUP_SIZES: np.ndarray = GROUP_SIZES_FULL.copy()
 GROUP_SIZES[-1] -= 1  # 319
 NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 850
@@ -62,7 +62,7 @@ def get_cohort1(seed: int = 26) -> np.ndarray:
     ranks = scores.argsort()[::-1].argsort() + 1  # 1 = meilleur, 1799 = pire
 
     # — Étape 2 : sélection pondérée parmi les rangs 201-650 —
-    pool_mask = (ranks >= 201) & (ranks <= 650)  # bool (N,)
+    pool_mask = (ranks >= 170) & (ranks <= 650)  # bool (N,)
     pool_indices = np.nonzero(pool_mask)[0]  # indices des 450 candidats
     weights = 651 - ranks[pool_indices]  # poids décroissants
     probs = weights / weights.sum()  # probabilités normalisées
@@ -73,7 +73,7 @@ def get_cohort1(seed: int = 26) -> np.ndarray:
     not_selected2_mask[selected2] = False  # on enlève les 250 tirés
 
     # — Étape 3 : cohorte « seconde chance » (850 candidats) —
-    second_chance_mask = not_selected2_mask | ((ranks >= 651) & (ranks <= 1300))
+    second_chance_mask = not_selected2_mask | ((ranks >= 651) & (ranks <= 1270))
 
     # Tableau des rangs initiaux puis tri croissant
     cohort_ranks = np.sort(ranks[second_chance_mask])  # shape (850,)
