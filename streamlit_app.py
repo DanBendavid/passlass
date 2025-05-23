@@ -23,7 +23,7 @@ size_pass = 1799
 
 # ─── 1. Config de la page ─────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Simulation de classement V1.2 (20/05/2025)",
+    page_title="Simulation de classement V1.3 (23/05/2025)",
     layout="centered",
     initial_sidebar_state="expanded",
 )

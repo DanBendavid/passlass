@@ -64,7 +64,7 @@ def get_cohort1(seed: int = 26) -> np.ndarray:
     # — Étape 2 : sélection pondérée parmi les rangs 201-650 —
     pool_mask = (ranks >= 170) & (ranks <= 650)  # bool (N,)
     pool_indices = np.nonzero(pool_mask)[0]  # indices des 450 candidats
-    weights = 651 - ranks[pool_indices]  # poids décroissants
+    weights = ranks[pool_indices] - 169  # 170 => 1, 650 => 481
     probs = weights / weights.sum()  # probabilités normalisées
     selected2 = rng.choice(pool_indices, size=250, replace=False, p=probs)
 
@@ -99,7 +99,7 @@ def _rank_inside_groups(ranks: np.ndarray) -> np.ndarray:
 
     if ranks.ndim == 1:
         intra = np.empty_like(ranks)
-        for g in range(3):
+        for g in range(len(GROUP_SIZES)):
             mask = GROUP_LABELS == g
             intra[mask] = ranks[mask].argsort().argsort() + 1
         return intra
