@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
 """Student‑ranking simulation with three fixed groups (254, 311, 319 classmates).
 
-*2025‑05‑01 – Patch 3*
-──────────────────────
-• **Multithreading support** — `simulate_student_ranking` now accepts a
-  `n_workers` parameter (≥ 1).  When `n_workers > 1`, the workload is split
-  across a :class:`concurrent.futures.ThreadPoolExecutor` so that multiple
-  cohorts are simulated in parallel.  NumPy releases the GIL during heavy
-  array maths, so thread‑level parallelism brings a noticeable speed‑up while
-  avoiding the pickling overhead of ``multiprocessing``.
-• No behavioural change when ``n_workers == 1`` (default).
-• Refactored core loop into the private helper ``_simulate_chunk`` so it can
-  be reused by each worker.
+*2025‑05‑01 – Patch 3 - CORRECTED*
+──────────────────────────────────
+• **Fix du bug de classement** — Correction de la fonction rank_inside_groups
+  pour s'assurer que les rangs intra-groupe sont calculés correctement
+• **Cohérence des rangs** — Un étudiant rang 40 dans sa filière ne peut plus
+  être rang 40 global s'il y a plusieurs filières
 """
 from __future__ import annotations
 
@@ -25,13 +20,14 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-GROUP_SIZES_FULL = np.array([254, 289, 30, 31, 32, 33, 34, 35, 36, 37])
+NB_PASS = 1799
+GROUP_SIZES_FULL = np.array([254, 289, 70, 31, 32, 33, 34, 35, 36, 37])
 GROUP_SIZES: np.ndarray = GROUP_SIZES_FULL.copy()
 GROUP_SIZES[-1] -= 1  # 319
-NB_CLASSMATES: int = int(GROUP_SIZES.sum())  # 850
+NB_LAS: int = int(GROUP_SIZES.sum())  # 850
 
 GROUP_LABELS: np.ndarray = np.repeat(np.arange(10), GROUP_SIZES)  # 0/1/2/3
-
+GROUP_LABELS_FULL = [f"G{i+1}" for i in range(len(GROUP_SIZES_FULL))]
 # ---------------------------------------------------------------------------
 # Helper: conversion rank → notes
 # ---------------------------------------------------------------------------
@@ -49,31 +45,26 @@ def get_cohort1(seed: int = 26) -> np.ndarray:
     seed : int, par défaut 42
         Graine pour la reproductibilité.
 
-    Renvoie
-    -------
-    np.ndarray
-        Tableau d'entiers (longueur 850) : rangs Step 1 ∈ [201 ; 1300].
     """
     rng = np.random.default_rng(seed)
-    N = 1799
 
     # — Étape 1 : rangs initiaux —
-    scores = rng.random(N)  # scores aléatoires dans [0,1)
+    scores = rng.random(NB_PASS)  # scores aléatoires dans [0,1)
     ranks = scores.argsort()[::-1].argsort() + 1  # 1 = meilleur, 1799 = pire
 
     # — Étape 2 : sélection pondérée parmi les rangs 201-650 —
     pool_mask = (ranks >= 170) & (ranks <= 650)  # bool (N,)
     pool_indices = np.nonzero(pool_mask)[0]  # indices des 450 candidats
-    weights = ranks[pool_indices] - 169  # 170 => 1, 650 => 481
+    weights = 651 - ranks[pool_indices]
     probs = weights / weights.sum()  # probabilités normalisées
     selected2 = rng.choice(pool_indices, size=250, replace=False, p=probs)
 
-    # candidats NON retenus à l’étape 2
+    # candidats NON retenus à l'étape 2
     not_selected2_mask = pool_mask.copy()
     not_selected2_mask[selected2] = False  # on enlève les 250 tirés
 
     # — Étape 3 : cohorte « seconde chance » (850 candidats) —
-    second_chance_mask = not_selected2_mask | ((ranks >= 651) & (ranks <= 1270))
+    second_chance_mask = not_selected2_mask | ((ranks >= 651) & (ranks <= 1269))
 
     # Tableau des rangs initiaux puis tri croissant
     cohort_ranks = np.sort(ranks[second_chance_mask])  # shape (850,)
@@ -85,51 +76,125 @@ COHORT1 = get_cohort1(SEED_COHORT)
 
 def _m1_from_ranks(ranks: np.ndarray) -> np.ndarray:
     """Convert *global* ranks (1‑based in the full cohort) to M1 marks."""
-    k = COHORT1[ranks]
-    return 20.0 * (1.0 - (k - 1) / 1798.0)
+    return 20.0 * (1.0 - (ranks - 1) / (NB_PASS - 1))
 
 
-def _rank_inside_groups(ranks: np.ndarray) -> np.ndarray:
-    """Return *1‑based* ranks inside each pre‑defined group.
-
-    Supports both a 1‑D array (single cohort) and a 2‑D array of shape
-    ``(n_cohorts, 884)``.  The returned array has the same shape as *ranks*.
+def rank_inside_groups(scores, group_labels):
     """
-    ranks = np.asarray(ranks)
+    Calcule les rangs intra-groupe basés sur les SCORES (pas les rangs globaux).
 
-    if ranks.ndim == 1:
-        intra = np.empty_like(ranks)
-        for g in range(len(GROUP_SIZES)):
-            mask = GROUP_LABELS == g
-            intra[mask] = ranks[mask].argsort().argsort() + 1
-        return intra
+    Parameters:
+    -----------
+    scores : array-like
+        Les scores/notes des étudiants
+    group_labels : array-like
+        Les labels de groupe pour chaque étudiant
 
-    if ranks.ndim == 2:
-        n_cohorts = ranks.shape[0]
-        intra = np.empty_like(ranks)
-        for g, size in enumerate(GROUP_SIZES):
-            mask = GROUP_LABELS == g  # (884,)
-            sub = ranks[:, mask]  # (n_cohorts, size)
-            order = np.argsort(sub, axis=1)
-            tmp = np.empty_like(sub)
-            tmp[np.arange(n_cohorts)[:, None], order] = np.arange(size) + 1
-            intra[:, mask] = tmp
-        return intra
+    Returns:
+    --------
+    intra_ranks : array
+        Les rangs intra-groupe (1 = meilleur dans le groupe)
+    """
+    scores = np.asarray(scores)
+    group_labels = np.asarray(group_labels)
+    intra_ranks = np.empty_like(scores, dtype=int)
 
-    raise ValueError("ranks array must be 1‑D or 2‑D")
+    for g in np.unique(group_labels):
+        mask = group_labels == g
+        group_scores = scores[mask]
+
+        # Rang intra-groupe : 1 = meilleur score dans le groupe
+        # argsort() donne l'ordre croissant, on inverse pour avoir décroissant
+        sorted_indices = np.argsort(group_scores)[::-1]
+        ranks_in_group = np.empty_like(sorted_indices)
+        ranks_in_group[sorted_indices] = np.arange(1, len(sorted_indices) + 1)
+
+        intra_ranks[mask] = ranks_in_group
+
+    return intra_ranks
 
 
-def _m2_from_ranks(ranks: np.ndarray) -> np.ndarray:
-    intra = _rank_inside_groups(ranks) - 1  # 0‑based intra ranks
-    gsize = GROUP_SIZES[GROUP_LABELS]
-    if ranks.ndim == 2:
-        gsize = gsize[None, :]  # broadcast over rows
-    return 20.0 * (1.0 - intra / (gsize - 1))
+def _m2_from_ranks(intra_ranks, group_labels):
+    """
+    Convertit les rangs intra-groupe en notes M2.
+
+    Parameters:
+    -----------
+    intra_ranks : array
+        Rangs intra-groupe (1-based)
+    group_labels : array
+        Labels de groupe
+    """
+    intra_0based = intra_ranks - 1  # Conversion en 0-based
+    group_sizes = GROUP_SIZES[group_labels]
+    return 20.0 * (1.0 - intra_0based / (group_sizes - 1))
 
 
 # ---------------------------------------------------------------------------
 # Core simulation helpers (serial + threaded wrappers)
 # ---------------------------------------------------------------------------
+
+
+def assign_groups_round_robin(n, group_sizes, rng=None):
+    """
+    Attribue les groupes de manière équitable mais aléatoire.
+
+    Parameters:
+    -----------
+    n : int
+        Nombre total d'étudiants
+    group_sizes : array-like
+        Tailles de chaque groupe
+    rng : numpy.random.Generator, optional
+        Générateur aléatoire pour mélanger les attributions
+
+    Returns:
+    --------
+    group_labels : array
+        Labels de groupe pour chaque étudiant
+    """
+    group_labels = np.empty(n, dtype=int)
+    group_counters = np.zeros(len(group_sizes), dtype=int)
+
+    # Attribution séquentielle d'abord
+    for i in range(n):
+        for g in range(len(group_sizes)):
+            if group_counters[g] < group_sizes[g]:
+                group_labels[i] = g
+                group_counters[g] += 1
+                break
+
+    # CORRECTION : Mélange aléatoire des attributions
+    if rng is not None:
+        rng.shuffle(group_labels)
+    else:
+        # Fallback si pas de RNG fourni
+        np.random.shuffle(group_labels)
+
+    return group_labels
+
+
+def assign_groups_round_robin_indices_and_names(
+    n, group_sizes, group_names=None
+):
+    assert n == group_sizes.sum()
+    if group_names is None:
+        group_names = [f"G{i+1}" for i in range(len(group_sizes))]
+    group_indices = np.empty(n, dtype=int)
+    group_name_labels = np.empty(n, dtype=object)
+    group_counters = np.zeros(len(group_sizes), dtype=int)
+    i = 0
+    group_idx = 0
+    while i < n:
+        if group_counters[group_idx] < group_sizes[group_idx]:
+            group_indices[i] = group_idx  # entier pour indexation numpy
+            group_name_labels[i] = group_names[
+                group_idx
+            ]  # label pour affichage
+            group_counters[group_idx] += 1
+            i += 1
+        group_idx = (group_idx + 1) % len(group_sizes)
+    return group_indices, group_name_labels
 
 
 def _simulate_chunk(
@@ -141,26 +206,56 @@ def _simulate_chunk(
     batch: int,
     seed: int | None = None,
 ) -> int:
-    """Run *n_simulations* and return the number of *successes* (n_ok)."""
-    rng = np.random.default_rng(seed)
+    """Run *n_simulations* and return the number of *successes* (n_ok),
+    avec cohorte et groupes aléatoires cohérents, en tenant compte de
+    l'effet de taille des filières sur la note M2."""
 
+    rng = np.random.default_rng(seed)
     target_avg = (note_m1_perso + note_m2_perso) / 2.0
-    cov = np.array([[1.0, rho], [rho, 1.0]])
     n_done = n_ok = 0
 
     while n_done < n_simulations:
         n = min(batch, n_simulations - n_done)
-        z = rng.multivariate_normal([0.0, 0.0], cov, size=(n, NB_CLASSMATES))
 
-        rank_m1 = np.argsort(z[:, :, 0], axis=1).argsort(axis=1) + 1
-        rank_m2 = np.argsort(z[:, :, 1], axis=1).argsort(axis=1) + 1
+        for _ in range(n):
+            # 1. Tirage d'une nouvelle cohorte aléatoire (note M1 issue de COHORT1)
+            cohort_ranks = get_cohort1(rng.integers(1e9))
+            note_m1_fixed = _m1_from_ranks(cohort_ranks)
 
-        m1 = _m1_from_ranks(rank_m1)
-        m2 = _m2_from_ranks(rank_m2)
+            # 2. Attribution homogène des groupes (filières)
+            group_labels = assign_groups_round_robin(NB_LAS, GROUP_SIZES, rng)
 
-        averages = (m1 + m2) / 2.0
-        n_better = (averages > target_avg).sum(axis=1)
-        n_ok += (n_better <= rang_souhaite - 1).sum()
+            # 3. Génération de M2 corrélée à M1, groupe par groupe (effet filière activé)
+            m2_std = np.empty(NB_LAS)
+            for g in np.unique(group_labels):
+                idx = group_labels == g
+                size = idx.sum()
+
+                m1_std_g = (
+                    note_m1_fixed[idx] - note_m1_fixed[idx].mean()
+                ) / note_m1_fixed[idx].std()
+                noise = rng.standard_normal(size)
+
+                m2_std_g = rho * m1_std_g + np.sqrt(1 - rho**2) * noise
+                m2_std[idx] = m2_std_g
+
+            # 4. CORRECTION : Calculer les rangs intra-groupe basés sur les SCORES M2
+            # et non pas sur les rangs globaux
+            rank_in_group = rank_inside_groups(m2_std, group_labels)
+
+            # 5. Conversion rang intra-groupe → note M2 avec échelle par groupe
+            note_m2_in_group = _m2_from_ranks(rank_in_group, group_labels)
+
+            # 6. Calcul de la moyenne M1/M2 (pondération 50/50 ici)
+            averages = (note_m1_fixed + note_m2_in_group) / 2.0
+
+            # 7. Rang global du candidat fictif (note moyenne personnalisée)
+            score_perso = target_avg
+            rang_perso = (averages > score_perso).sum() + 1  # rang 1 = meilleur
+
+            # 8. Est-il classé dans les premiers ?
+            n_ok += rang_perso <= rang_souhaite
+
         n_done += n
 
     return n_ok
@@ -191,7 +286,7 @@ def simulate_student_ranking(
     rho : float, default 0.5
         Rank‑to‑rank correlation between M1 and M2.
     rng : numpy.random.Generator, optional
-        Custom RNG for reproducibility (ignored when *n_workers > 1*).
+        Custom RNG for reproducibility (ignored when *n_workers > 1*).
     batch : int, default 250
         Cohorts are simulated in batches of this size for memory efficiency.
     n_workers : int, default 1
@@ -200,7 +295,7 @@ def simulate_student_ranking(
         Internal knob to override the size of the pool (for testing).
     """
     if n_workers < 1:
-        raise ValueError("n_workers must be ≥ 1")
+        raise ValueError("n_workers must be ≥ 1")
 
     if n_workers == 1:
         # Keep the original deterministic behaviour when a custom RNG is given.
@@ -255,69 +350,3 @@ def simulate_student_ranking(
     p = n_ok / n_simulations
     se = np.sqrt(p * (1 - p) / n_simulations)
     return p, se
-
-
-# ---------------------------------------------------------------------------
-# Cohort generation & export helpers (unchanged)
-# ---------------------------------------------------------------------------
-
-
-def simulate_one_cohort(
-    rho: float = 0.5, seed: int | None = None
-) -> pd.DataFrame:
-    rng = np.random.default_rng(seed)
-    z = rng.multivariate_normal(
-        [0.0, 0.0], [[1.0, rho], [rho, 1.0]], size=NB_CLASSMATES
-    )
-
-    rank_m1 = np.argsort(z[:, 0]).argsort() + 1
-    rank_m2 = np.argsort(z[:, 1]).argsort() + 1
-
-    df = (
-        pd.DataFrame(
-            {
-                "group": GROUP_LABELS,
-                "rank_m1": rank_m1,
-                "rank_m2": rank_m2,
-                "rank_in_group": _rank_inside_groups(rank_m2),
-                "note_m1": _m1_from_ranks(rank_m1),
-                "note_m2": _m2_from_ranks(rank_m2),
-            }
-        )
-        .sort_values(["group", "rank_in_group"])
-        .reset_index(drop=True)
-    )
-
-    return df
-
-
-def cohort_to_excel(
-    rho: float = 0.7, seed: int | None = None, path: str | Path = "cohort.xlsx"
-) -> Path:
-    df = simulate_one_cohort(rho=rho, seed=seed)
-    path = Path(path).expanduser().resolve()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_excel(path, index=False)
-    return path
-
-
-def n_to_k(n: int, *, seed: int = 42) -> int:
-    """
-    Donne le rang initial k du nième candidat (n) dans la cohorte Step 3.
-
-    Paramètres
-    ----------
-    n : int
-        Index dans la cohorte Step 3 (0 ≤ n ≤ 849).
-    seed : int, optionnel
-        Graine utilisée pour générer la même cohorte.
-
-    Renvoie
-    -------
-    int
-        Rang Step 1 (k) correspondant.
-    """
-    cohort = get_cohort1(seed)  # tableau (850,)
-    if not 0 <= n < cohort.size:
-        raise IndexError(f"n doit être entre 0 et {cohort.size - 1}, reçu {n}")
-    return int(cohort[n])
