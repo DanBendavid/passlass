@@ -224,7 +224,18 @@ if choix_page == "Accueil":
         "SIAS",  # 254 OK
         "STAPS",  # 37 HYP
     ]
-    licences_sciences_size = [30, 31, 32, 33, 34, 289, 35, 36, 254, 37]
+    licences_sciences_size = [
+        20,  # Chimie
+        20,  # Maths et applications
+        32,  # MEDPHY
+        25,  # MIASHS
+        15,  # Physique
+        289,  # Sciences Biomédicales
+        30,  # Sciences de la Vie
+        25,  # Sciences de la Vie de la Terre (IPGP)
+        254,  # SIAS
+        40,  # STAPS
+    ]
     licences_dict = dict(zip(licences_sciences, licences_sciences_size))
 
     license_name = st.selectbox("Choisissez votre licence :", licences_sciences)

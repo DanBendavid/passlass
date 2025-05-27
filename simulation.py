@@ -21,12 +21,25 @@ import pandas as pd
 # Constants
 # ---------------------------------------------------------------------------
 NB_PASS = 1799
-GROUP_SIZES_FULL = np.array([254, 289, 70, 31, 32, 33, 34, 35, 36, 37])
+GROUP_SIZES_FULL = np.array(
+    [
+        20,  # Chimie
+        20,  # Maths et applications
+        32,  # MEDPHY
+        25,  # MIASHS
+        15,  # Physique
+        289,  # Sciences Biomédicales
+        30,  # Sciences de la Vie
+        25,  # Sciences de la Vie de la Terre (IPGP)
+        254,  # SIAS
+        40,  # STAPS
+    ]
+)
 GROUP_SIZES: np.ndarray = GROUP_SIZES_FULL.copy()
 GROUP_SIZES[-1] -= 1  # 319
-NB_LAS: int = int(GROUP_SIZES.sum())  # 850
+NB_LAS: int = int(GROUP_SIZES.sum())
 
-GROUP_LABELS: np.ndarray = np.repeat(np.arange(10), GROUP_SIZES)  # 0/1/2/3
+GROUP_LABELS: np.ndarray = np.repeat(np.arange(10), GROUP_SIZES)
 GROUP_LABELS_FULL = [f"G{i+1}" for i in range(len(GROUP_SIZES_FULL))]
 # ---------------------------------------------------------------------------
 # Helper: conversion rank → notes
@@ -63,11 +76,14 @@ def get_cohort1(seed: int = 26) -> np.ndarray:
     not_selected2_mask = pool_mask.copy()
     not_selected2_mask[selected2] = False  # on enlève les 250 tirés
 
-    # — Étape 3 : cohorte « seconde chance » (850 candidats) —
     second_chance_mask = not_selected2_mask | ((ranks >= 651) & (ranks <= 1269))
 
-    # Tableau des rangs initiaux puis tri croissant
-    cohort_ranks = np.sort(ranks[second_chance_mask])  # shape (850,)
+    second_chance_indices = np.nonzero(second_chance_mask)[0]
+    # ⇨ Choisir *n_candidats* dans les rangs de seconde chance
+    selected_indices = np.sort(
+        rng.choice(second_chance_indices, size=749, replace=False)
+    )
+    cohort_ranks = ranks[selected_indices]
     return cohort_ranks
 
 
@@ -205,6 +221,7 @@ def _simulate_chunk(
     rho: float,
     batch: int,
     seed: int | None = None,
+    cohorte_fixe: bool = True,
 ) -> int:
     """Run *n_simulations* and return the number of *successes* (n_ok),
     avec cohorte et groupes aléatoires cohérents, en tenant compte de
@@ -214,16 +231,23 @@ def _simulate_chunk(
     target_avg = (note_m1_perso + note_m2_perso) / 2.0
     n_done = n_ok = 0
 
+    if cohorte_fixe:
+        cohort_ranks = get_cohort1(rng.integers(1e9))
+        note_m1_fixed = _m1_from_ranks(cohort_ranks)
+        group_labels = assign_groups_round_robin(NB_LAS, GROUP_SIZES, rng)
+
     while n_done < n_simulations:
         n = min(batch, n_simulations - n_done)
 
         for _ in range(n):
-            # 1. Tirage d'une nouvelle cohorte aléatoire (note M1 issue de COHORT1)
-            cohort_ranks = get_cohort1(rng.integers(1e9))
-            note_m1_fixed = _m1_from_ranks(cohort_ranks)
 
-            # 2. Attribution homogène des groupes (filières)
-            group_labels = assign_groups_round_robin(NB_LAS, GROUP_SIZES, rng)
+            if not cohorte_fixe:
+                # Tirage d'une nouvelle cohorte à chaque simulation
+                cohort_ranks = get_cohort1(rng.integers(1e9))
+                note_m1_fixed = _m1_from_ranks(cohort_ranks)
+                group_labels = assign_groups_round_robin(
+                    NB_LAS, GROUP_SIZES, rng
+                )
 
             # 3. Génération de M2 corrélée à M1, groupe par groupe (effet filière activé)
             m2_std = np.empty(NB_LAS)
@@ -308,6 +332,7 @@ def simulate_student_ranking(
             rho,
             batch,
             seed,
+            cohorte_fixe=True,
         )
         p = n_ok / n_simulations
         se = np.sqrt(p * (1 - p) / n_simulations)

@@ -21,7 +21,7 @@ def export_simulation_to_excel(
     filename: str = "simulation_complete.xlsx",
     note_m1_perso: float = 13,
     note_m2_perso: float = 13,
-    rho: float = 0.5,
+    rho: float = 0.7,
     seed: int = 42
 ) -> str:
     """
