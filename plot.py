@@ -14,7 +14,7 @@ def graph_student_ranking(
     rank_target, rho, n_simulations, note_m1, note_m2, n_workers
 ):
     rank_fifty = None
-    rhos = [rho, 0.7, 1.0]
+    rhos = [rho, 1.0]
 
     ranks = list(range(max(1, rank_target - 50), min(884, rank_target + 51), 2))
     fig, ax = plt.subplots()

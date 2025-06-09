@@ -23,7 +23,7 @@ size_pass = 1799
 
 # ─── 1. Config de la page ─────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Simulation de classement V1.3 (23/05/2025)",
+    page_title="Simulation de classement V1.5 (09/06/2025)",
     layout="centered",
     initial_sidebar_state="expanded",
 )
@@ -451,7 +451,7 @@ elif choix_page == "PASS LAS2":
 # --- Page LAS1 LAS2 ----------------------------------------------------------
 elif choix_page == "LAS1 LAS2":
     st.title("🔄 Simulation LAS1 → LAS2")
-    st.info("Version 0.5 (13/05/2025) ")
+    st.info("Version 0.6 (9/6/2025) ")
     # placeholder : ajoutez ici vos widgets et votre logique
 
     with st.form("las1_las2"):

@@ -8,11 +8,15 @@ import pandas as pd
 from simulation import (
     GROUP_LABELS_FULL,
     GROUP_SIZES,
-    NB_LAS,
+    NB_LAS2,
+    NB_LAS_1,
+    NB_PASS,
     _m1_from_ranks,
     _m2_from_ranks,
+    assign_groups_balanced_pass_only_g9,
     assign_groups_round_robin,
     get_cohort1,
+    get_cohort2,
     rank_inside_groups,
 )
 
@@ -20,13 +24,13 @@ from simulation import (
 def export_simulation_to_excel(
     filename: str = "simulation_complete.xlsx",
     note_m1_perso: float = 13,
-    note_m2_perso: float = 13,
-    rho: float = 0.7,
-    seed: int = 42
+    note_m2_perso: float = 17,
+    rho: float = 0.85,
+    seed: int = 42,
 ) -> str:
     """
     Exporte une simulation complète vers Excel avec toutes les données détaillées.
-    
+
     Parameters:
     -----------
     filename : str
@@ -37,30 +41,42 @@ def export_simulation_to_excel(
         Corrélation entre M1 et M2
     seed : int
         Graine pour la reproductibilité
-    
+
     Returns:
     --------
     str : Message de confirmation avec statistiques
     """
     rng = np.random.default_rng(seed)
     target_avg = (note_m1_perso + note_m2_perso) / 2.0
-    
-    # 1. Génération d'une cohorte
-    cohort_ranks = get_cohort1(rng.integers(1e9))
-    note_m1_fixed = _m1_from_ranks(cohort_ranks)
 
+    # 1. Génération d'une cohorte
+    cohort_ranks1 = get_cohort1(rng.integers(1e9))
+    note_m1_fixed1 = _m1_from_ranks(cohort_ranks1, NB_PASS)
+    cohort_ranks2 = get_cohort2(rng.integers(1e9))
+    note_m1_fixed2 = _m1_from_ranks(cohort_ranks2, NB_LAS_1)
+    note_m1_fixed = np.concatenate([note_m1_fixed1, note_m1_fixed2])
+    cohort_ranks = np.concatenate([cohort_ranks1, cohort_ranks2])
     # 2. Attribution des groupes (ALÉATOIRE)
-    rng_groups = np.random.default_rng(seed + 1000)  # RNG séparé pour les groupes
-    group_labels = assign_groups_round_robin(NB_LAS, GROUP_SIZES, rng_groups)
+    rng_groups = np.random.default_rng(
+        seed + 1000
+    )  # RNG séparé pour les groupes
+    group_labels = assign_groups_balanced_pass_only_g9(
+        scores_pass=note_m1_fixed1,
+        scores_las1=note_m1_fixed2,
+        group_sizes=GROUP_SIZES,
+        rng=rng,
+    )
     group_names = [GROUP_LABELS_FULL[i] for i in group_labels]
 
     # 3. Génération de M2 corrélée à M1
-    m2_std = np.empty(NB_LAS)
+    m2_std = np.empty(NB_LAS2)
     for g in np.unique(group_labels):
         idx = group_labels == g
         size = idx.sum()
-        
-        m1_std_g = (note_m1_fixed[idx] - note_m1_fixed[idx].mean()) / note_m1_fixed[idx].std()
+
+        m1_std_g = (
+            note_m1_fixed[idx] - note_m1_fixed[idx].mean()
+        ) / note_m1_fixed[idx].std()
         noise = rng.standard_normal(size)
         m2_std_g = rho * m1_std_g + np.sqrt(1 - rho**2) * noise
         m2_std[idx] = m2_std_g
@@ -69,7 +85,7 @@ def export_simulation_to_excel(
     rank_m1_global = cohort_ranks  # Rangs M1 globaux (issus de la cohorte)
     rank_m2_intra = rank_inside_groups(m2_std, group_labels)
     note_m2_scaled = _m2_from_ranks(rank_m2_intra, group_labels)
-    
+
     # 5. Moyennes et classement final
     averages = (note_m1_fixed + note_m2_scaled) / 2.0
     rang_global_final = np.argsort(averages)[::-1].argsort() + 1
@@ -79,67 +95,95 @@ def export_simulation_to_excel(
     rang_perso = (averages > score_perso).sum() + 1
 
     # 7. Création du DataFrame
-    df = pd.DataFrame({
-        'Etudiant_ID': range(1, NB_LAS + 1),
-        'Groupe_Num': group_labels + 1,  # 1-indexed pour Excel
-        'Groupe_Nom': group_names,
-        'Rang_M1_Global': rank_m1_global,
-        'Note_M1': np.round(note_m1_fixed, 2),
-        'Score_M2_Std': np.round(m2_std, 4),
-        'Rang_M2_IntraGroupe': rank_m2_intra,
-        'Note_M2_Scaled': np.round(note_m2_scaled, 2),
-        'Note_Moyenne': np.round(averages, 2),
-        'Rang_Global_Final': rang_global_final
-    })
+    df = pd.DataFrame(
+        {
+            "Etudiant_ID": range(1, NB_LAS2 + 1),
+            "Groupe_Num": group_labels + 1,  # 1-indexed pour Excel
+            "Groupe_Nom": group_names,
+            "Rang_M1_Global": rank_m1_global,
+            "Note_M1": np.round(note_m1_fixed, 2),
+            "Score_M2_Std": np.round(m2_std, 4),
+            "Rang_M2_IntraGroupe": rank_m2_intra,
+            "Note_M2_Scaled": np.round(note_m2_scaled, 2),
+            "Note_Moyenne": np.round(averages, 2),
+            "Rang_Global_Final": rang_global_final,
+        }
+    )
 
     # 8. Ajout des statistiques par groupe
     stats_by_group = []
     for g in range(len(GROUP_SIZES)):
         mask = group_labels == g
         group_data = df[mask]
-        stats_by_group.append({
-            'Groupe': GROUP_LABELS_FULL[g],
-            'Taille': len(group_data),
-            'Note_M1_Moyenne': np.round(group_data['Note_M1'].mean(), 2),
-            'Note_M1_Std': np.round(group_data['Note_M1'].std(), 2),
-            'Note_M2_Moyenne': np.round(group_data['Note_M2_Scaled'].mean(), 2),
-            'Note_M2_Std': np.round(group_data['Note_M2_Scaled'].std(), 2),
-            'Note_Finale_Moyenne': np.round(group_data['Note_Moyenne'].mean(), 2),
-            'Note_Finale_Std': np.round(group_data['Note_Moyenne'].std(), 2),
-            'Meilleur_Rang_Global': group_data['Rang_Global_Final'].min(),
-            'Pire_Rang_Global': group_data['Rang_Global_Final'].max()
-        })
-    
+        stats_by_group.append(
+            {
+                "Groupe": GROUP_LABELS_FULL[g],
+                "Taille": len(group_data),
+                "Note_M1_Moyenne": np.round(group_data["Note_M1"].mean(), 2),
+                "Note_M1_Std": np.round(group_data["Note_M1"].std(), 2),
+                "Note_M2_Moyenne": np.round(
+                    group_data["Note_M2_Scaled"].mean(), 2
+                ),
+                "Note_M2_Std": np.round(group_data["Note_M2_Scaled"].std(), 2),
+                "Note_Finale_Moyenne": np.round(
+                    group_data["Note_Moyenne"].mean(), 2
+                ),
+                "Note_Finale_Std": np.round(
+                    group_data["Note_Moyenne"].std(), 2
+                ),
+                "Meilleur_Rang_Global": group_data["Rang_Global_Final"].min(),
+                "Pire_Rang_Global": group_data["Rang_Global_Final"].max(),
+            }
+        )
+
     stats_df = pd.DataFrame(stats_by_group)
 
     # 9. Informations sur le candidat fictif
-    candidat_info = pd.DataFrame({
-        'Parametre': ['Note_M1_Perso', 'Note_M2_Perso', 'Note_Moyenne_Perso', 'Rang_Simule', 'Correlation_rho', 'Seed'],
-        'Valeur': [note_m1_perso, note_m2_perso, target_avg, rang_perso, rho, seed]
-    })
+    candidat_info = pd.DataFrame(
+        {
+            "Parametre": [
+                "Note_M1_Perso",
+                "Note_M2_Perso",
+                "Note_Moyenne_Perso",
+                "Rang_Simule",
+                "Correlation_rho",
+                "Seed",
+            ],
+            "Valeur": [
+                note_m1_perso,
+                note_m2_perso,
+                target_avg,
+                rang_perso,
+                rho,
+                seed,
+            ],
+        }
+    )
 
     # 10. Export vers Excel
-    with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+    with pd.ExcelWriter(filename, engine="openpyxl") as writer:
         # Données principales
-        df.to_excel(writer, sheet_name='Simulation_Complete', index=False)
-        
+        df.to_excel(writer, sheet_name="Simulation_Complete", index=False)
+
         # Statistiques par groupe
-        stats_df.to_excel(writer, sheet_name='Stats_Par_Groupe', index=False)
-        
+        stats_df.to_excel(writer, sheet_name="Stats_Par_Groupe", index=False)
+
         # Informations candidat
-        candidat_info.to_excel(writer, sheet_name='Parametres_Simulation', index=False)
-        
+        candidat_info.to_excel(
+            writer, sheet_name="Parametres_Simulation", index=False
+        )
+
         # Top 50 et Bottom 50
-        df_sorted = df.sort_values('Rang_Global_Final')
-        df_sorted.head(50).to_excel(writer, sheet_name='Top_50', index=False)
-        df_sorted.tail(50).to_excel(writer, sheet_name='Bottom_50', index=False)
+        df_sorted = df.sort_values("Rang_Global_Final")
+        df_sorted.head(50).to_excel(writer, sheet_name="Top_50", index=False)
+        df_sorted.tail(50).to_excel(writer, sheet_name="Bottom_50", index=False)
 
     # 11. Statistiques de retour
     stats_msg = f"""
 Simulation exportée vers '{filename}' avec succès !
 
 STATISTIQUES GÉNÉRALES:
-- Nombre d'étudiants: {NB_LAS}
+- Nombre d'étudiants: {NB_LAS2}
 - Nombre de groupes: {len(GROUP_SIZES)}
 - Corrélation M1-M2: {rho}
 
@@ -147,8 +191,8 @@ CANDIDAT FICTIF:
 - Note M1: {note_m1_perso}
 - Note M2: {note_m2_perso}
 - Note moyenne: {target_avg}
-- Rang simulé: {rang_perso}/{NB_LAS}
-- Percentile: {100 * (1 - rang_perso/NB_LAS):.1f}%
+- Rang simulé: {rang_perso}/{NB_LAS2}
+- Percentile: {100 * (1 - rang_perso/NB_LAS2):.1f}%
 
 RÉPARTITION PAR NOTES MOYENNES:
 - [18-20]: {len(df[df['Note_Moyenne'] >= 18])} étudiants
@@ -165,7 +209,7 @@ FEUILLES EXCEL CRÉÉES:
 - 'Top_50': Les 50 meilleurs étudiants
 - 'Bottom_50': Les 50 moins bons étudiants
 """
-    
+
     return stats_msg
 
 
