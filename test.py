@@ -10,6 +10,7 @@ from simulation import (
     GROUP_SIZES,
     NB_LAS2,
     NB_LAS_1,
+    NB_LAS_3,
     NB_PASS,
     _m1_from_ranks,
     _m2_from_ranks,
@@ -17,6 +18,7 @@ from simulation import (
     assign_groups_round_robin,
     get_cohort1,
     get_cohort2,
+    get_cohort3,
     rank_inside_groups,
 )
 
@@ -25,7 +27,7 @@ def export_simulation_to_excel(
     filename: str = "simulation_complete.xlsx",
     note_m1_perso: float = 13,
     note_m2_perso: float = 17,
-    rho: float = 0.85,
+    rho: float = 0.75,
     seed: int = 42,
 ) -> str:
     """
@@ -52,10 +54,18 @@ def export_simulation_to_excel(
     # 1. Génération d'une cohorte
     cohort_ranks1 = get_cohort1(rng.integers(1e9))
     note_m1_fixed1 = _m1_from_ranks(cohort_ranks1, NB_PASS)
+
     cohort_ranks2 = get_cohort2(rng.integers(1e9))
     note_m1_fixed2 = _m1_from_ranks(cohort_ranks2, NB_LAS_1)
-    note_m1_fixed = np.concatenate([note_m1_fixed1, note_m1_fixed2])
-    cohort_ranks = np.concatenate([cohort_ranks1, cohort_ranks2])
+
+    cohort_ranks3 = get_cohort3(rng.integers(1e9))
+    note_m1_fixed3 = _m1_from_ranks(cohort_ranks3, NB_LAS_3)
+
+    note_m1_fixed = np.concatenate(
+        [note_m1_fixed1, note_m1_fixed2, note_m1_fixed3]
+    )
+
+    cohort_ranks = np.concatenate([cohort_ranks1, cohort_ranks2, cohort_ranks3])
     # 2. Attribution des groupes (ALÉATOIRE)
     rng_groups = np.random.default_rng(
         seed + 1000
@@ -63,6 +73,7 @@ def export_simulation_to_excel(
     group_labels = assign_groups_balanced_pass_only_g9(
         scores_pass=note_m1_fixed1,
         scores_las1=note_m1_fixed2,
+        scores_las3=note_m1_fixed3,
         group_sizes=GROUP_SIZES,
         rng=rng,
     )
@@ -251,4 +262,4 @@ def test_ranking_logic():
 
 
 if __name__ == "__main__":
-    export_simulation_to_excel()
+    print(export_simulation_to_excel())

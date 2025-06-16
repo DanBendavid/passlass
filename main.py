@@ -25,7 +25,7 @@ if __name__ == "__main__":
     if PLOT_:
 
         # Probability curve example (ρ = 0.5, 0.7) using multithreading
-        rhos, ranks = [0.7, 1], range(160, 200, 1)
+        rhos, ranks = [0.7], range(190, 230, 2)
         for rho in rhos:
             pvals = [
                 simulate_student_ranking(

@@ -20,8 +20,9 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-NB_PASS = 1799
-NB_LAS_1 = 500  # 500 étudiants de la LAS1 Sciences
+NB_PASS = 1799  # PASS
+NB_LAS_1 = 450  # LAS1 Sciences
+NB_LAS_3 = 400  # LAS2 Sciences
 
 # LAS 2 GROUPES
 GROUP_SIZES_FULL = np.array(
@@ -45,110 +46,105 @@ GROUP_LABELS: np.ndarray = np.repeat(np.arange(10), GROUP_SIZES)
 GROUP_LABELS_FULL = [f"G{i+1}" for i in range(len(GROUP_SIZES_FULL))]
 
 
-def get_cohort1(
-    seed: int = 26,
-    Nb_total: int = 1799,  # effectif total simulé
-    rang_min: int = 170,  # borne inférieure du Pool 1
-    rang_pivot: int = 645,  # borne supérieure du Pool 1 (= borne inférieure – 1 du Pool 2)
-    rang_max: int = 1269,  # borne supérieure du Pool 2
-    n_pool1: int = 250,  # tirages dans le Pool 1
-    n_pool2: int = 400,  # tirages dans le Pool 2
-    alpha: float = 2.0,  # intensité du biais : 1=linéaire, 2=quadratique…
+def get_cohort(
+    Nb_total: int,
+    rang_min: int,
+    rang_pivot: int,
+    rang_max: int,
+    n_pool1: int,
+    n_pool2: int,
+    alpha: float = 2.0,
+    seed: int | None = None,
 ) -> np.ndarray:
     """
-    Sélection pondérée sur deux intervalles de rangs :
+    Génère une cohorte par sélection pondérée sur deux intervalles de rangs.
 
-    * **Pool 1** : rangs ``rang_min`` → ``rang_pivot``
-      Poids croissants vers ``rang_pivot``
-      Tirage sans remise de ``n_pool1`` individus.
+    Cette fonction est la base générique pour créer des cohortes spécifiques.
 
-    * **Pool 2** : rangs ``rang_pivot+1`` → ``rang_max``
-      Poids croissants vers ``rang_max``
-      Tirage sans remise de ``n_pool2`` individus.
-
-    Le poids appliqué à chaque rang est
-    ``(rank - lower_bound + 1) ** alpha``.
+    Parameters:
+    -----------
+    Nb_total : int
+        Effectif total de la population de départ.
+    rang_min, rang_pivot, rang_max : int
+        Bornes définissant les deux pools de sélection.
+    n_pool1, n_pool2 : int
+        Nombre d'individus à tirer dans chaque pool.
+    alpha : float, default 2.0
+        Intensité du biais de sélection.
+    seed : int, optional
+        Graine pour la reproductibilité du générateur aléatoire.
     """
     if not (1 <= rang_min < rang_pivot < rang_max <= Nb_total):
-        raise ValueError(
-            "Assurez-vous que 1 ≤ rang_min < rang_pivot < rang_max ≤ Nb_total."
-        )
+        raise ValueError("Les bornes de rangs ne sont pas valides.")
 
     rng = np.random.default_rng(seed)
 
     # Rangs globaux simulés (1 = meilleur)
     scores = rng.random(Nb_total)
-    ranks = scores.argsort()[::-1].argsort() + 1  # 1 … Nb_total
+    ranks = scores.argsort()[::-1].argsort() + 1
 
-    # ---------- Pool 1 ----------
+    # --- Pool 1 (rangs min à pivot) ---
     p1 = np.where((rang_min <= ranks) & (ranks <= rang_pivot))[0]
     if n_pool1 > len(p1):
-        raise ValueError("n_pool1 dépasse la taille du Pool 1.")
-    w1 = (ranks[p1] - rang_min + 1) ** alpha  # 1 … rang_pivot-rang_min+1
+        raise ValueError(
+            f"n_pool1 ({n_pool1}) dépasse la taille du Pool 1 ({len(p1)})."
+        )
+    w1 = (ranks[p1] - rang_min + 1) ** alpha
     sel1 = rng.choice(p1, n_pool1, replace=False, p=w1 / w1.sum())
 
-    # ---------- Pool 2 ----------
+    # --- Pool 2 (rangs pivot+1 à max) ---
     p2 = np.where((rang_pivot + 1 <= ranks) & (ranks <= rang_max))[0]
     if n_pool2 > len(p2):
-        raise ValueError("n_pool2 dépasse la taille du Pool 2.")
-    w2 = (rang_max - ranks[p2] + 1) ** alpha  # max au pivot, min à rang_max
+        raise ValueError(
+            f"n_pool2 ({n_pool2}) dépasse la taille du Pool 2 ({len(p2)})."
+        )
+    w2 = (rang_max - ranks[p2] + 1) ** alpha
     sel2 = rng.choice(p2, n_pool2, replace=False, p=w2 / w2.sum())
 
     # Renvoyer les rangs retenus, triés
     return np.sort(ranks[np.concatenate([sel1, sel2])])
 
 
-def get_cohort2(
-    seed: int = 26,
-    Nb_total: int = 500,  # effectif total simulé
-    rang_min: int = 45,  # borne inférieure du Pool 1
-    rang_pivot: int = 120,  # borne supérieure du Pool 1 (= borne inférieure – 1 du Pool 2)
-    rang_max: int = 300,  # borne supérieure du Pool 2
-    n_pool1: int = 60,  # tirages dans le Pool 1
-    n_pool2: int = 100,  # tirages dans le Pool 2
-    alpha: float = 2.0,  # intensité du biais : 1=linéaire, 2=quadratique…
-) -> np.ndarray:
-    """
-    Sélection pondérée sur deux intervalles de rangs :
+def get_cohort1(seed: int = 26) -> np.ndarray:
+    """Génère la cohorte spécifique aux étudiants PASS."""
+    return get_cohort(
+        Nb_total=NB_PASS,
+        rang_min=170,
+        rang_pivot=500,
+        rang_max=1270,
+        n_pool1=250,
+        n_pool2=320,
+        alpha=2.0,
+        seed=seed,
+    )
 
-    * **Pool 1** : rangs ``rang_min`` → ``rang_pivot``
-      Poids croissants vers ``rang_pivot``
-      Tirage sans remise de ``n_pool1`` individus.
 
-    * **Pool 2** : rangs ``rang_pivot+1`` → ``rang_max``
-      Poids croissants vers ``rang_max``
-      Tirage sans remise de ``n_pool2`` individus.
+def get_cohort2(seed: int = 26) -> np.ndarray:
+    """Génère la cohorte spécifique aux étudiants LAS 1."""
+    return get_cohort(
+        Nb_total=NB_LAS_1,
+        rang_min=40,
+        rang_pivot=80,
+        rang_max=200,
+        n_pool1=40,
+        n_pool2=80,
+        alpha=2.0,
+        seed=seed,
+    )
 
-    Le poids appliqué à chaque rang est
-    ``(rank - lower_bound + 1) ** alpha``.
-    """
-    if not (1 <= rang_min < rang_pivot < rang_max <= Nb_total):
-        raise ValueError(
-            "Assurez-vous que 1 ≤ rang_min < rang_pivot < rang_max ≤ Nb_total."
-        )
 
-    rng = np.random.default_rng(seed)
-
-    # Rangs globaux simulés (1 = meilleur)
-    scores = rng.random(Nb_total)
-    ranks = scores.argsort()[::-1].argsort() + 1  # 1 … Nb_total
-
-    # ---------- Pool 1 ----------
-    p1 = np.where((rang_min <= ranks) & (ranks <= rang_pivot))[0]
-    if n_pool1 > len(p1):
-        raise ValueError("n_pool1 dépasse la taille du Pool 1.")
-    w1 = (ranks[p1] - rang_min + 1) ** alpha  # 1 … rang_pivot-rang_min+1
-    sel1 = rng.choice(p1, n_pool1, replace=False, p=w1 / w1.sum())
-
-    # ---------- Pool 2 ----------
-    p2 = np.where((rang_pivot + 1 <= ranks) & (ranks <= rang_max))[0]
-    if n_pool2 > len(p2):
-        raise ValueError("n_pool2 dépasse la taille du Pool 2.")
-    w2 = (rang_max - ranks[p2] + 1) ** alpha  # max au pivot, min à rang_max
-    sel2 = rng.choice(p2, n_pool2, replace=False, p=w2 / w2.sum())
-
-    # Renvoyer les rangs retenus, triés
-    return np.sort(ranks[np.concatenate([sel1, sel2])])
+def get_cohort3(seed: int = 26) -> np.ndarray:
+    """Génère la cohorte spécifique aux étudiants LAS 1."""
+    return get_cohort(
+        Nb_total=NB_LAS_3,
+        rang_min=40,
+        rang_pivot=80,
+        rang_max=200,
+        n_pool1=40,
+        n_pool2=80,
+        alpha=2.0,
+        seed=seed,
+    )
 
 
 def _m1_from_ranks(ranks: np.ndarray, size: int) -> np.ndarray:
@@ -250,15 +246,17 @@ def assign_groups_round_robin(n, group_sizes, rng=None):
 
     return group_labels
 
+
 import numpy as np
 
 
 def assign_groups_balanced_pass_only_g9(
-    scores_pass: np.ndarray,          # notes M1 des 650 PASS
-    scores_las1: np.ndarray,          # notes M1 des 160 LAS-1
-    group_sizes: np.ndarray,          # quotas (somme = 810)
+    scores_pass: np.ndarray,  # notes M1  PASS
+    scores_las1: np.ndarray,  # notes M1  LAS-1
+    scores_las3: np.ndarray,  # notes M1  LAS-3
+    group_sizes: np.ndarray,  # quotas (somme = 810)
     rng: np.random.Generator | None = None,
-    pass_only_group: int = 8,         # index 8  → « groupe 9 »
+    pass_only_group: int = 8,  # index 8  → « groupe 9 »
 ) -> np.ndarray:
     """
     Retourne `labels` (longueur 810) tel que :
@@ -271,9 +269,10 @@ def assign_groups_balanced_pass_only_g9(
     if rng is None:
         rng = np.random.default_rng()
 
-    n_pass  = scores_pass.size       # 650
-    n_las1  = scores_las1.size       # 160
-    n_total = n_pass + n_las1        # 810
+    n_pass = scores_pass.size
+    n_las1 = scores_las1.size
+    n_las3 = scores_las3.size
+    n_total = n_pass + n_las1 + n_las3  # 810
     assert group_sizes.sum() == n_total
 
     # ------------------------------------------------------------------
@@ -288,28 +287,33 @@ def assign_groups_balanced_pass_only_g9(
     labels[g9_pass_idx] = pass_only_group
 
     remaining_quota = group_sizes.copy()
-    remaining_quota[pass_only_group] = 0           # quota déjà rempli
+    remaining_quota[pass_only_group] = 0  # quota déjà rempli
 
     # ------------------------------------------------------------------
-    # 2.   Candidats restant à répartir (PASS restants + LAS-1)
+    # 2.   Candidats restant à répartir (PASS restants + LAS-1 + LAS-3)
     #      ==> équilibrage niveau par attribution pondérée
     # ------------------------------------------------------------------
     # concaténation des niveaux & indicateurs d'origine
-    scores_mix   = np.concatenate([scores_pass[rest_pass_idx], scores_las1])
-    is_pass_mix  = np.concatenate([
-        np.ones(rest_pass_idx.size, dtype=bool),   # True  pour PASS restants
-        np.zeros(n_las1, dtype=bool),              # False pour LAS-1
-    ])
+    scores_mix = np.concatenate(
+        [scores_pass[rest_pass_idx], scores_las1, scores_las3]
+    )
+    is_pass_mix = np.concatenate(
+        [
+            np.ones(rest_pass_idx.size, dtype=bool),  # True  pour PASS restants
+            np.zeros(n_las1, dtype=bool),  # False pour LAS-1
+            np.zeros(n_las3, dtype=bool),  # False pour LAS-3
+        ]
+    )
 
     # ordre décroissant de score
     order = scores_mix.argsort()[::-1]
 
-    for idx in order:                # du meilleur au moins bon
+    for idx in order:  # du meilleur au moins bon
         cand_is_pass = is_pass_mix[idx]
 
         # liste des groupes encore disponibles
         allowed_groups = np.flatnonzero(remaining_quota)
-        if not cand_is_pass:         # LAS-1 → on retire le groupe 9
+        if not cand_is_pass:  # LAS-1 → on retire le groupe 9
             allowed_groups = allowed_groups[allowed_groups != pass_only_group]
 
         # pondération proportionnelle au quota restant
@@ -318,7 +322,7 @@ def assign_groups_balanced_pass_only_g9(
 
         g = rng.choice(allowed_groups, p=weights)
         labels_idx = (
-            rest_pass_idx[idx]        # si PASS restant
+            rest_pass_idx[idx]  # si PASS restant
             if cand_is_pass
             else n_pass + (idx - rest_pass_idx.size)  # LAS-1
         )
@@ -330,7 +334,6 @@ def assign_groups_balanced_pass_only_g9(
     assert (labels[n_pass:] != pass_only_group).all(), "LAS-1 dans le groupe 9"
 
     return labels
-
 
 
 def assign_groups_round_robin_indices_and_names(
@@ -377,13 +380,21 @@ def _simulate_chunk(
     if cohorte_fixe:
         cohort_ranks1 = get_cohort1(rng.integers(1e9))
         note_m1_fixed1 = _m1_from_ranks(cohort_ranks1, NB_PASS)
+
         cohort_ranks2 = get_cohort2(rng.integers(1e9))
         note_m1_fixed2 = _m1_from_ranks(cohort_ranks2, NB_LAS_1)
-        note_m1_fixed = np.concatenate([note_m1_fixed1, note_m1_fixed2])
+
+        cohort_ranks3 = get_cohort3(rng.integers(1e9))
+        note_m1_fixed3 = _m1_from_ranks(cohort_ranks3, NB_LAS_3)
+
+        note_m1_fixed = np.concatenate(
+            [note_m1_fixed1, note_m1_fixed2, note_m1_fixed3]
+        )
 
         group_labels = assign_groups_balanced_pass_only_g9(
             scores_pass=note_m1_fixed1,
             scores_las1=note_m1_fixed2,
+            scores_las3=note_m1_fixed3,
             group_sizes=GROUP_SIZES,
             rng=rng,
         )
@@ -397,13 +408,21 @@ def _simulate_chunk(
                 # Tirage d'une nouvelle cohorte à chaque simulation
                 cohort_ranks1 = get_cohort1(rng.integers(1e9))
                 note_m1_fixed1 = _m1_from_ranks(cohort_ranks1, NB_PASS)
+
                 cohort_ranks2 = get_cohort2(rng.integers(1e9))
                 note_m1_fixed2 = _m1_from_ranks(cohort_ranks2, NB_LAS_1)
-                note_m1_fixed = np.concatenate([note_m1_fixed1, note_m1_fixed2])
+
+                cohort_ranks3 = get_cohort3(rng.integers(1e9))
+                note_m1_fixed3 = _m1_from_ranks(cohort_ranks2, NB_LAS_3)
+
+                note_m1_fixed = np.concatenate(
+                    [note_m1_fixed1, note_m1_fixed2], note_m1_fixed3
+                )
 
                 group_labels = assign_groups_balanced_pass_only_g9(
                     scores_pass=note_m1_fixed1,
                     scores_las1=note_m1_fixed2,
+                    scores_las3=note_m1_fixed3,
                     group_sizes=GROUP_SIZES,
                     rng=rng,
                 )
